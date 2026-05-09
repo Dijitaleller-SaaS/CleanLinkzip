@@ -28,6 +28,10 @@ router.get("/vendors", async (_req, res) => {
         serviceScopes: vendorProfilesTable.serviceScopes,
         galleryUrls: vendorProfilesTable.galleryUrls,
         certUrls:    vendorProfilesTable.certUrls,
+        city:            vendorProfilesTable.city,
+        district:        vendorProfilesTable.district,
+        hasPati:         vendorProfilesTable.hasPati,
+        isNatureFriendly: vendorProfilesTable.isNatureFriendly,
       })
       .from(vendorProfilesTable)
       .innerJoin(usersTable, eq(vendorProfilesTable.userId, usersTable.id))
@@ -93,7 +97,7 @@ router.put("/vendors/me", requireAuth, async (req: AuthRequest, res) => {
   /* isSubscribed and isSponsor are billing-state fields managed exclusively by
      admin actions or verified payment callbacks. Vendors must never be able to
      self-assign these via their own profile update endpoint. */
-  const { bio, phone, whatsappPhone, regions, isPublished, prices, serviceScopes, galleryUrls, certUrls } = req.body;
+  const { bio, phone, whatsappPhone, regions, isPublished, prices, serviceScopes, galleryUrls, certUrls, city, district } = req.body;
 
   /* RBAC: phone/whatsapp düzenleme yalnızca abone/sponsor için izinli */
   if (phone !== undefined || whatsappPhone !== undefined) {
@@ -135,6 +139,8 @@ router.put("/vendors/me", requireAuth, async (req: AuthRequest, res) => {
         ...(serviceScopes !== undefined && { serviceScopes }),
         ...(galleryUrls !== undefined && { galleryUrls }),
         ...(certUrls !== undefined && { certUrls }),
+        ...(city !== undefined && { city }),
+        ...(district !== undefined && { district }),
         updatedAt: new Date(),
       })
       .where(eq(vendorProfilesTable.userId, userId))

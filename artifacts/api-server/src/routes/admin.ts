@@ -30,6 +30,10 @@ const adminVendorSelect = {
   activatedAt:         vendorProfilesTable.activatedAt,
   userCreatedAt:       usersTable.createdAt,
   updatedAt:           vendorProfilesTable.updatedAt,
+  city:                vendorProfilesTable.city,
+  district:            vendorProfilesTable.district,
+  hasPati:             vendorProfilesTable.hasPati,
+  isNatureFriendly:    vendorProfilesTable.isNatureFriendly,
 } as const;
 
 function toAdminVendor(row: {
@@ -38,6 +42,7 @@ function toAdminVendor(row: {
   isAdminHidden: boolean; subscriptionPending: boolean; havaleRefCode: string | null;
   havalePkg: string | null; paket: string | null; yayinaGirisTarihi: Date | null;
   activatedAt: Date | null; userCreatedAt: Date; updatedAt: Date;
+  city: string; district: string; hasPati: boolean; isNatureFriendly: boolean;
 }) {
   return {
     id:                  row.id,
@@ -58,6 +63,10 @@ function toAdminVendor(row: {
     activatedAt:         row.activatedAt?.getTime() ?? null,
     joinedAt:            row.userCreatedAt.getTime(),
     updatedAt:           row.updatedAt.getTime(),
+    city:                row.city,
+    district:            row.district,
+    hasPati:             row.hasPati,
+    isNatureFriendly:    row.isNatureFriendly,
   };
 }
 

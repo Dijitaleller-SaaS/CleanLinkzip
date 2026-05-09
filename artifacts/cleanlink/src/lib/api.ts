@@ -135,6 +135,10 @@ export interface VendorProfileApi {
   serviceScopes: Record<string, string>;
   galleryUrls: string[];
   certUrls: string[];
+  city?: string;
+  district?: string;
+  hasPati?: boolean;
+  isNatureFriendly?: boolean;
 }
 
 export interface PublicVendorApi {
@@ -153,6 +157,10 @@ export interface PublicVendorApi {
   serviceScopes: Record<string, string>;
   galleryUrls: string[];
   certUrls: string[];
+  city?: string;
+  district?: string;
+  hasPati?: boolean;
+  isNatureFriendly?: boolean;
 }
 
 export async function apiGetVendors(): Promise<PublicVendorApi[]> {
@@ -406,6 +414,10 @@ export interface AdminVendor {
   activatedAt: number | null;
   updatedAt: number;
   joinedAt: number;
+  city: string;
+  district: string;
+  hasPati: boolean;
+  isNatureFriendly: boolean;
 }
 
 export async function apiNotifyDekont(payload: {

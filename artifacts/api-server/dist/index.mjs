@@ -80997,6 +80997,10 @@ var vendorProfilesTable = pgTable("vendor_profiles", {
   paket: varchar("paket", { length: 20 }),
   yayinaGirisTarihi: timestamp("yayina_giris_tarihi"),
   activatedAt: timestamp("activated_at"),
+  city: varchar("city", { length: 100 }).default("\u0130stanbul").notNull(),
+  district: varchar("district", { length: 100 }).default("").notNull(),
+  hasPati: boolean("has_pati").default(false).notNull(),
+  isNatureFriendly: boolean("is_nature_friendly").default(false).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 var insertVendorProfileSchema = createInsertSchema(vendorProfilesTable).omit({ id: true, updatedAt: true });
@@ -81706,7 +81710,11 @@ router4.get("/vendors", async (_req, res) => {
       prices: vendorProfilesTable.prices,
       serviceScopes: vendorProfilesTable.serviceScopes,
       galleryUrls: vendorProfilesTable.galleryUrls,
-      certUrls: vendorProfilesTable.certUrls
+      certUrls: vendorProfilesTable.certUrls,
+      city: vendorProfilesTable.city,
+      district: vendorProfilesTable.district,
+      hasPati: vendorProfilesTable.hasPati,
+      isNatureFriendly: vendorProfilesTable.isNatureFriendly
     }).from(vendorProfilesTable).innerJoin(usersTable, eq(vendorProfilesTable.userId, usersTable.id)).where(
       and(
         eq(vendorProfilesTable.isPublished, true),
@@ -81748,7 +81756,7 @@ router4.put("/vendors/me", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Sadece firma hesaplar\u0131 g\xFCncelleyebilir" });
     return;
   }
-  const { bio, phone, whatsappPhone, regions, isSubscribed, isSponsor, isPublished, prices, serviceScopes, galleryUrls, certUrls } = req.body;
+  const { bio, phone, whatsappPhone, regions, isPublished, prices, serviceScopes, galleryUrls, certUrls, city, district } = req.body;
   if (phone !== void 0 || whatsappPhone !== void 0) {
     const [current] = await db.select({
       isSubscribed: vendorProfilesTable.isSubscribed,
@@ -81761,27 +81769,23 @@ router4.put("/vendors/me", requireAuth, async (req, res) => {
     }
   }
   try {
-    let interceptPublish = false;
-    if (isPublished === true) {
-      const [current] = await db.select({ isPublished: vendorProfilesTable.isPublished, isSubscribed: vendorProfilesTable.isSubscribed, isSponsor: vendorProfilesTable.isSponsor }).from(vendorProfilesTable).where(eq(vendorProfilesTable.userId, userId)).limit(1);
-      if (current && !current.isPublished && !current.isSubscribed && !current.isSponsor) {
-        interceptPublish = true;
-      }
-    }
+    const interceptPublish = isPublished === true;
     const [user] = interceptPublish ? await db.select({ name: usersTable.name, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, userId)).limit(1) : [null];
     const [updated] = await db.update(vendorProfilesTable).set({
       ...bio !== void 0 && { bio },
       ...phone !== void 0 && { phone },
       ...whatsappPhone !== void 0 && { whatsappPhone },
       ...regions !== void 0 && { regions },
-      ...isSubscribed !== void 0 && { isSubscribed },
-      ...isSponsor !== void 0 && { isSponsor },
-      /* isPublished intercept: eğer admin onayı gerekiyorsa isPublished: true YAPMA, subscriptionPending: true set et */
-      ...interceptPublish ? { subscriptionPending: true } : isPublished !== void 0 ? { isPublished } : {},
+      /* isSubscribed and isSponsor are intentionally omitted — not settable by vendors */
+      /* isPublished: true always routes through admin-approval flow;
+         isPublished: false (unpublish) is allowed directly */
+      ...interceptPublish ? { subscriptionPending: true } : isPublished === false ? { isPublished: false } : {},
       ...prices !== void 0 && { prices },
       ...serviceScopes !== void 0 && { serviceScopes },
       ...galleryUrls !== void 0 && { galleryUrls },
       ...certUrls !== void 0 && { certUrls },
+      ...city !== void 0 && { city },
+      ...district !== void 0 && { district },
       updatedAt: /* @__PURE__ */ new Date()
     }).where(eq(vendorProfilesTable.userId, userId)).returning();
     if (!updated) {
@@ -82016,16 +82020,23 @@ router5.delete("/admin/coupons/:id", requireAuth, requireAdmin, async (req, res)
   await logAudit(req, "coupon.delete", deleted.code, { id });
   res.json({ ok: true });
 });
-async function redeemCoupon(rawCode, orderTotal) {
+var COUPON_ERRORS = /* @__PURE__ */ new Set([
+  "invalid",
+  "not_active",
+  "expired",
+  "min_total",
+  "limit"
+]);
+async function redeemCoupon(rawCode, orderTotal, tx = db) {
   const code = rawCode.trim().toUpperCase();
-  const [c] = await db.select().from(couponsTable).where(eq(couponsTable.code, code)).limit(1);
+  const [c] = await tx.select().from(couponsTable).where(eq(couponsTable.code, code)).limit(1);
   if (!c || !c.isActive) throw new Error("invalid");
   const now = /* @__PURE__ */ new Date();
   if (c.validFrom && c.validFrom > now) throw new Error("not_active");
   if (c.validUntil && c.validUntil < now) throw new Error("expired");
   if (orderTotal < c.minOrderTotal) throw new Error("min_total");
   const discount = c.discountType === "percent" ? Math.round(orderTotal * c.discountValue / 100) : Math.min(c.discountValue, orderTotal);
-  const updated = await db.update(couponsTable).set({ usedCount: sql`${couponsTable.usedCount} + 1` }).where(
+  const updated = await tx.update(couponsTable).set({ usedCount: sql`${couponsTable.usedCount} + 1` }).where(
     and(
       eq(couponsTable.code, code),
       eq(couponsTable.isActive, true),
@@ -82168,39 +82179,43 @@ router6.post("/orders", requireAuth, async (req, res) => {
     return;
   }
   const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-  let couponCode = "";
-  let discountAmount = 0;
-  if (typeof body.couponCode === "string" && body.couponCode.trim()) {
-    try {
-      const v = await redeemCoupon(body.couponCode.trim(), body.total);
-      couponCode = v.code;
-      discountAmount = v.discountAmount;
-    } catch {
-    }
-  }
   try {
-    const [order] = await db.insert(ordersTable).values({
-      id: orderId,
-      customerId: userId,
-      vendorId: vendorUser.id,
-      customerName: name,
-      customerPhone: body.customerPhone ?? "",
-      vendorName: vendorUser.name,
-      service: body.service,
-      total: Math.max(0, body.total - discountAmount),
-      status: "beklemede",
-      ilce: body.ilce ?? "",
-      mahalle: body.mahalle ?? "",
-      adres: body.adres ?? "",
-      requestedDate: body.requestedDate ?? "",
-      requestedTimeSlot: body.requestedTimeSlot ?? "",
-      visitTime: "",
-      ecoOption: body.ecoOption ?? false,
-      treesPlanted: 0,
-      musteriYeniSaatIstedi: false,
-      couponCode,
-      discountAmount
-    }).returning();
+    const order = await db.transaction(async (tx) => {
+      let couponCode = "";
+      let discountAmount = 0;
+      if (typeof body.couponCode === "string" && body.couponCode.trim()) {
+        try {
+          const v = await redeemCoupon(body.couponCode.trim(), body.total, tx);
+          couponCode = v.code;
+          discountAmount = v.discountAmount;
+        } catch (err) {
+          if (!(err instanceof Error && COUPON_ERRORS.has(err.message))) throw err;
+        }
+      }
+      const [inserted] = await tx.insert(ordersTable).values({
+        id: orderId,
+        customerId: userId,
+        vendorId: vendorUser.id,
+        customerName: name,
+        customerPhone: body.customerPhone ?? "",
+        vendorName: vendorUser.name,
+        service: body.service,
+        total: Math.max(0, body.total - discountAmount),
+        status: "beklemede",
+        ilce: body.ilce ?? "",
+        mahalle: body.mahalle ?? "",
+        adres: body.adres ?? "",
+        requestedDate: body.requestedDate ?? "",
+        requestedTimeSlot: body.requestedTimeSlot ?? "",
+        visitTime: "",
+        ecoOption: body.ecoOption ?? false,
+        treesPlanted: 0,
+        musteriYeniSaatIstedi: false,
+        couponCode,
+        discountAmount
+      }).returning();
+      return inserted;
+    });
     await notify(
       vendorUser.id,
       "new_order",
@@ -82316,7 +82331,11 @@ var adminVendorSelect = {
   yayinaGirisTarihi: vendorProfilesTable.yayinaGirisTarihi,
   activatedAt: vendorProfilesTable.activatedAt,
   userCreatedAt: usersTable.createdAt,
-  updatedAt: vendorProfilesTable.updatedAt
+  updatedAt: vendorProfilesTable.updatedAt,
+  city: vendorProfilesTable.city,
+  district: vendorProfilesTable.district,
+  hasPati: vendorProfilesTable.hasPati,
+  isNatureFriendly: vendorProfilesTable.isNatureFriendly
 };
 function toAdminVendor(row) {
   return {
@@ -82337,7 +82356,11 @@ function toAdminVendor(row) {
     yayinaGirisTarihi: row.yayinaGirisTarihi?.getTime() ?? null,
     activatedAt: row.activatedAt?.getTime() ?? null,
     joinedAt: row.userCreatedAt.getTime(),
-    updatedAt: row.updatedAt.getTime()
+    updatedAt: row.updatedAt.getTime(),
+    city: row.city,
+    district: row.district,
+    hasPati: row.hasPati,
+    isNatureFriendly: row.isNatureFriendly
   };
 }
 async function getAdminVendorByUserId(userId) {

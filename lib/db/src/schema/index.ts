@@ -42,6 +42,10 @@ export const vendorProfilesTable = pgTable("vendor_profiles", {
   paket:               varchar("paket", { length: 20 }),
   yayinaGirisTarihi:   timestamp("yayina_giris_tarihi"),
   activatedAt:         timestamp("activated_at"),
+  city:                varchar("city", { length: 100 }).default("İstanbul").notNull(),
+  district:            varchar("district", { length: 100 }).default("").notNull(),
+  hasPati:             boolean("has_pati").default(false).notNull(),
+  isNatureFriendly:    boolean("is_nature_friendly").default(false).notNull(),
   updatedAt:           timestamp("updated_at").defaultNow().notNull(),
 });
 

@@ -104,6 +104,8 @@ export interface FirmaProfileData {
   yayinaGirisTarihi?: number;
   prices: FirmaPrices;
   serviceScopes: ServiceScopes;
+  city?: string;
+  district?: string;
 }
 
 export function isSubExpired(profile: Pick<FirmaProfileData, "yayinaGirisTarihi" | "isSubscribed">): boolean {
@@ -135,6 +137,10 @@ export interface VendorEntry {
   serviceScopes?: Partial<ServiceScopes>;
   galleryUrls?: string[];
   certUrls?: string[];
+  city?: string;
+  district?: string;
+  hasPati?: boolean;
+  isNatureFriendly?: boolean;
 }
 
 export type OrderDurum =
@@ -373,6 +379,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               : undefined,
             prices: Object.keys(vp.prices).length > 0 ? { ...defaultPrices, ...vp.prices } : defaultPrices,
             serviceScopes: Object.keys(vp.serviceScopes).length > 0 ? { ...defaultScopes, ...vp.serviceScopes } : defaultScopes,
+            city: vp.city,
+            district: vp.district,
           };
           setFirmaProfileState(fromApi);
         }).catch(() => {});
@@ -414,6 +422,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       serviceScopes: v.serviceScopes as Partial<ServiceScopes>,
       galleryUrls: v.galleryUrls,
       certUrls: v.certUrls,
+      city: v.city,
+      district: v.district,
+      hasPati: v.hasPati,
+      isNatureFriendly: v.isNatureFriendly,
     })));
   };
 
@@ -515,6 +527,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : undefined,
       prices: Object.keys(vp.prices).length > 0 ? { ...defaultPrices, ...vp.prices } : defaultPrices,
       serviceScopes: Object.keys(vp.serviceScopes).length > 0 ? { ...defaultScopes, ...vp.serviceScopes } : defaultScopes,
+      city: vp.city,
+      district: vp.district,
     };
     setFirmaProfileState(fromApi);
   };

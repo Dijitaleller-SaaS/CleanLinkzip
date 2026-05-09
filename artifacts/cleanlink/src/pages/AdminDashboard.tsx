@@ -289,6 +289,13 @@ function FirmaTab() {
                         {v.activatedAt && <span className="ml-2">· Aktif: <span className="font-medium">{new Date(v.activatedAt).toLocaleDateString("tr-TR")}</span></span>}
                         <span className="ml-2">· Katıldı: {new Date(v.joinedAt).toLocaleDateString("tr-TR")}</span>
                       </p>
+                      {(v.city || v.district) && (
+                        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                          📍 <span className="font-medium">{[v.city, v.district].filter(Boolean).join(" / ")}</span>
+                          {v.hasPati && <span className="ml-1">🐾 Pati</span>}
+                          {v.isNatureFriendly && <span className="ml-1">🌳 Doğa Dostu</span>}
+                        </p>
+                      )}
                     </div>
                   </div>
 

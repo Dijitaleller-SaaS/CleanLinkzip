@@ -16,7 +16,7 @@ const COMPANIES: FirmaData[] = [
     name: "Gün Halı Temizlik",
     rating: 4.9,
     reviews: 0,
-    location: "İstanbul",
+    location: "İstanbul / Şişli",
     tags: ["Halı Yıkama", "Kilim", "Yün Halı"],
     verified: true,
     isPremium: true,
@@ -26,6 +26,8 @@ const COMPANIES: FirmaData[] = [
     bio: "Profesyonel halı, kilim ve yün halı yıkama hizmetleri. Endüstriyel makineler ve organik ürünlerle temiz ve hijyenik teslimat.",
     founded: "2024",
     completedJobs: 0,
+    hasPati: true,
+    isNatureFriendly: true,
     certs: [
       { label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" },
     ],
@@ -46,7 +48,7 @@ const COMPANIES: FirmaData[] = [
     name: "Cleanlink Temizlik",
     rating: 4.9,
     reviews: 0,
-    location: "İstanbul",
+    location: "İstanbul / Beşiktaş",
     tags: ["Ev Temizliği", "Ofis", "Derin Temizlik"],
     verified: true,
     isPremium: true,
@@ -56,6 +58,8 @@ const COMPANIES: FirmaData[] = [
     bio: "Ev, ofis ve inşaat sonrası temizlik hizmetlerinde güvenilir çözüm ortağınız. Çevre dostu ürünler ve eğitimli personel ile kaliteli hizmet.",
     founded: "2024",
     completedJobs: 0,
+    hasPati: true,
+    isNatureFriendly: true,
     certs: [
       { label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" },
     ],
@@ -76,7 +80,7 @@ const COMPANIES: FirmaData[] = [
     name: "Elitplus+ Koltuk Yıkama",
     rating: 4.9,
     reviews: 0,
-    location: "İstanbul",
+    location: "İstanbul / Kadıköy",
     tags: ["Koltuk Yıkama", "Araç İçi", "Buharlı"],
     verified: true,
     isPremium: true,
@@ -86,6 +90,8 @@ const COMPANIES: FirmaData[] = [
     bio: "Buharlı yıkama teknolojisiyle koltuk, L koltuk ve araç içi temizliğinde uzman. Aynı gün servis ve hızlı kuruma garantisi.",
     founded: "2024",
     completedJobs: 0,
+    hasPati: true,
+    isNatureFriendly: true,
     certs: [
       { label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" },
     ],
@@ -125,13 +131,15 @@ function buildFirmaData(v: VendorEntry, idx: number): FirmaData {
     name: v.name,
     rating: 4.5,
     reviews: 0,
-    location: regions[0] ? `${regions[0]}, İstanbul` : "İstanbul",
+    location: v.district ? `${v.city ?? "İstanbul"} / ${v.district}` : (regions[0] ? `${regions[0]}, İstanbul` : (v.city ?? "İstanbul")),
     tags: regions.slice(0, 3).length ? regions.slice(0, 3) : ["Ev Temizliği"],
     verified: true,
     isPremium: v.isSponsor ?? false,
     isSubscribed: v.isSubscribed ?? false,
     isSponsor: v.isSponsor ?? false,
     badge: null,
+    hasPati: v.hasPati ?? false,
+    isNatureFriendly: v.isNatureFriendly ?? false,
     image: "",
     phone: v.phone ?? "",
     bio: bio || "Profesyonel temizlik hizmetleri.",
@@ -325,9 +333,15 @@ export function FeaturedCompanies() {
                         )}
                       </h3>
                       {/* Doğa Dostu İşletme rozeti */}
-                      {(company.completedJobs ?? 0) >= NATURE_FRIENDLY_THRESHOLD && (
+                      {(company.isNatureFriendly || (company.completedJobs ?? 0) >= NATURE_FRIENDLY_THRESHOLD) && (
                         <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold mt-0.5 w-fit">
                           🌳 Doğa Dostu İşletme
+                        </div>
+                      )}
+                      {/* Pati Seçeneği rozeti */}
+                      {company.hasPati && (
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 text-[10px] font-bold mt-0.5 w-fit">
+                          🐾 Pati Seçeneği
                         </div>
                       )}
                       <div className="flex items-center text-sm text-muted-foreground mt-0.5">

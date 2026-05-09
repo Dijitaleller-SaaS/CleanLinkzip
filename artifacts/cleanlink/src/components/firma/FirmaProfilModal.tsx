@@ -52,6 +52,8 @@ export interface FirmaData {
   bio: string;
   founded: string;
   completedJobs: number;
+  hasPati?: boolean;
+  isNatureFriendly?: boolean;
   certs: CertItem[];
   services: ServiceItem[];
   galleryColors: GallerySlot[];

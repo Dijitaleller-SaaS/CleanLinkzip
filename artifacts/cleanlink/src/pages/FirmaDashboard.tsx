@@ -999,6 +999,29 @@ function ProfilTab() {
   const [contactSaved, setContactSaved] = useState(false);
   const [contactError, setContactError] = useState("");
 
+  const [draftCity, setDraftCity] = useState(firmaProfile.city || "İstanbul");
+  const [draftDistrict, setDraftDistrict] = useState(firmaProfile.district || "");
+  const [addressSaved, setAddressSaved] = useState(false);
+  const [addressError, setAddressError] = useState("");
+
+  useEffect(() => {
+    setDraftCity(firmaProfile.city || "İstanbul");
+    setDraftDistrict(firmaProfile.district || "");
+  }, [firmaProfile.city, firmaProfile.district]);
+
+  const saveAddress = async () => {
+    setAddressError("");
+    try {
+      await apiUpdateVendorProfile({ city: draftCity, district: draftDistrict });
+      updateFirmaProfile({ city: draftCity, district: draftDistrict });
+      setAddressSaved(true);
+      setTimeout(() => setAddressSaved(false), 2000);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Kaydedilemedi";
+      setAddressError(msg);
+    }
+  };
+
   useEffect(() => {
     setDraftPhone(firmaProfile.phone || "");
     setDraftWhatsapp(firmaProfile.whatsappPhone || "");
@@ -1322,6 +1345,49 @@ function ProfilTab() {
             );
           })}
         </div>
+      </div>
+
+      {/* ── Firma Adresi ── */}
+      <div className="bg-white rounded-2xl border border-border p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <MapPin className="w-4 h-4 text-primary" />
+          <h3 className="font-semibold text-foreground">Firma Adresi</h3>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">Şehir ve ilçe bilgisi firma kartınızda "İstanbul / Şişli" formatında gösterilir.</p>
+        <div className="grid sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Şehir</label>
+            <input
+              type="text"
+              value={draftCity}
+              onChange={e => setDraftCity(e.target.value)}
+              placeholder="İstanbul"
+              className="w-full border-2 border-border rounded-xl px-3 py-2.5 outline-none focus:border-primary transition text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">İlçe</label>
+            <select
+              value={draftDistrict}
+              onChange={e => setDraftDistrict(e.target.value)}
+              className="w-full border-2 border-border rounded-xl px-3 py-2.5 outline-none focus:border-primary transition text-sm bg-white"
+            >
+              <option value="">İlçe Seçin</option>
+              {TR_REGIONS.map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {draftCity && draftDistrict && (
+          <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
+            <MapPin className="w-3 h-3" /> Kartta gösterilecek: <span className="font-medium text-foreground">{draftCity} / {draftDistrict}</span>
+          </p>
+        )}
+        {addressError && <p className="text-xs text-red-600 mb-2">{addressError}</p>}
+        <Button onClick={saveAddress} variant={addressSaved ? "outline" : "default"} className="h-9 rounded-xl text-sm gap-2">
+          {addressSaved ? <><Check className="w-4 h-4" /> Kaydedildi!</> : "Adresi Kaydet"}
+        </Button>
       </div>
 
       {/* ── Media Gallery ── */}
