@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
+import { KvkkConsent } from "@/components/kvkk/KvkkConsent";
 import Home from "@/pages/Home";
 const FirmaDashboard    = lazy(() => import("@/pages/FirmaDashboard"));
 const AllVendors        = lazy(() => import("@/pages/AllVendors"));
@@ -468,6 +469,7 @@ function AppInner() {
         </WouterRouter>
         <AuthModal />
         <CustomerOrdersPanel />
+        <KvkkConsent />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
