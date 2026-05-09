@@ -59,15 +59,6 @@ export function Hero() {
               <span className="text-gradient">Yeni Standart</span>
             </h1>
 
-            {/* Network expansion highlight */}
-            <div className="mb-5 px-4 py-3 rounded-2xl bg-primary/5 border border-primary/10 text-left max-w-xl mx-auto lg:mx-0">
-              <p className="text-sm font-bold text-primary mb-0.5">🌐 Türkiye'nin Dijital Temizlik Ağı Genişliyor!</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Şu an <span className="font-semibold text-foreground">Pilot Bölge İstanbul</span>'da profesyonel temizlik standartlarını yeniden tanımlıyoruz.
-                Çok yakında hizmet kalitemizi <span className="font-semibold text-foreground">4 yeni şehrimize</span> daha taşıyarak sizlerle birlikte olacağız.
-              </p>
-            </div>
-
             <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
               Eviniz veya ofisiniz için en iyi profesyonelleri bulun. Şeffaf fiyatlandırma, güvenilir hizmet ve anında rezervasyon.
             </p>
@@ -137,7 +128,18 @@ export function Hero() {
               </button>
             </div>
 
-            <div className="mt-8 flex items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground font-medium">
+            {/* Network expansion — below city selector */}
+            <div className="mt-4 max-w-md mx-auto lg:mx-0">
+              <p className="text-[11px] font-bold text-primary uppercase tracking-wider mb-1">
+                Türkiye'nin Dijital Temizlik Ağı Genişliyor!
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Şu an <span className="font-semibold text-foreground">Pilot Bölge İstanbul</span>'da profesyonel temizlik standartlarını yeniden tanımlıyoruz.
+                Çok yakında hizmet kalitemizi <span className="font-semibold text-foreground">4 yeni şehrimize</span> daha taşıyarak sizlerle birlikte olacağız.
+              </p>
+            </div>
+
+            <div className="mt-6 flex items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground font-medium">
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div>
                 Onaylı Uzmanlar
