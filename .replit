@@ -64,5 +64,14 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 5001
+externalPort = 3000
+
+[[ports]]
 localPort = 8080
 externalPort = 8080
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["bash", "-c", "PORT=8080 node --enable-source-maps ./artifacts/api-server/dist/index.mjs & PORT=5000 npx vite preview --config ./artifacts/cleanlink/vite.config.ts --host 0.0.0.0 --port 5000"]
+build = ["bash", "-c", "PORT=5000 BASE_PATH=/ pnpm --filter @workspace/cleanlink run build && PORT=8080 pnpm --filter @workspace/api-server run build"]
