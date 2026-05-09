@@ -1,0 +1,228 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: admin
+    description: Admin operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /admin/vendors:
+    get:
+      operationId: adminGetVendors
+      tags: [admin]
+      summary: List all vendors (admin)
+      description: Returns all vendor profiles including unpublished ones, with user info and subscription status.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: All vendors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vendors:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AdminVendor"
+                required:
+                  - vendors
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/vendors/by-name/{name}/approve:
+    patch:
+      operationId: adminApproveVendorByName
+      tags: [admin]
+      summary: Approve vendor subscription by name
+      description: Approves a pending havale payment for the vendor with the given username. Sets isSubscribed, clears subscriptionPending, sets isSponsor based on havalePkg, and records yayinaGirisTarihi.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The vendor's username
+      responses:
+        "200":
+          description: Vendor updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vendor:
+                    $ref: "#/components/schemas/AdminVendor"
+                required:
+                  - vendor
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/vendors/by-name/{name}/extend:
+    patch:
+      operationId: adminExtendVendorByName
+      tags: [admin]
+      summary: Extend vendor subscription by name
+      description: Extends the vendor subscription by 30 days by resetting yayinaGirisTarihi to now.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The vendor's username
+      responses:
+        "200":
+          description: Vendor updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vendor:
+                    $ref: "#/components/schemas/AdminVendor"
+                required:
+                  - vendor
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    AdminVendor:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        bio:
+          type: string
+        regions:
+          type: array
+          items:
+            type: string
+        isSubscribed:
+          type: boolean
+        isSponsor:
+          type: boolean
+        isPublished:
+          type: boolean
+        isAdminHidden:
+          type: boolean
+        subscriptionPending:
+          type: boolean
+        havaleRefCode:
+          type: string
+          nullable: true
+        havalePkg:
+          type: string
+          nullable: true
+        paket:
+          type: string
+          nullable: true
+        yayinaGirisTarihi:
+          type: integer
+          description: Unix timestamp in milliseconds (null if never activated)
+          nullable: true
+        updatedAt:
+          type: integer
+          description: Unix timestamp in milliseconds
+        joinedAt:
+          type: integer
+          description: Unix timestamp in milliseconds
+      required:
+        - id
+        - userId
+        - name
+        - email
+        - bio
+        - regions
+        - isSubscribed
+        - isSponsor
+        - isPublished
+        - isAdminHidden
+        - subscriptionPending
+        - updatedAt
+        - joinedAt
