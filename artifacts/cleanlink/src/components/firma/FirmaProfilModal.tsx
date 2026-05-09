@@ -45,7 +45,7 @@ export interface FirmaData {
   isPremium?: boolean;
   isSubscribed?: boolean;
   isSponsor?: boolean;
-  badge: "one_cikan" | "acil" | "en_iyi_fiyat" | null;
+  badge: "one_cikan" | "acil" | "en_iyi_fiyat" | "pilot" | null;
   image: string;
   phone: string;
   whatsappPhone?: string;
@@ -85,6 +85,7 @@ const BADGE_CONFIG = {
   one_cikan: { label: "Öne Çıkan", icon: Award, color: "bg-violet-100 text-violet-700 border-violet-200" },
   acil: { label: "Acil Hizmet", icon: Zap, color: "bg-orange-100 text-orange-700 border-orange-200" },
   en_iyi_fiyat: { label: "En İyi Fiyat", icon: Tag, color: "bg-green-100 text-green-700 border-green-200" },
+  pilot: { label: "Pilot Firma", icon: Sparkles, color: "bg-teal-100 text-teal-700 border-teal-200" },
 };
 
 function Stars({ puan, onClick }: { puan: number; onClick?: (n: number) => void }) {

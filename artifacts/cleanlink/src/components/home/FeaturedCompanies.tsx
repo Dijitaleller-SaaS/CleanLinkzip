@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Star, ShieldCheck, MapPin, ChevronLeft, ChevronRight,
-  Home, SprayCan, EyeOff
+  Home, SprayCan, EyeOff, Layers, Sofa, Wind, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FirmaProfilModal, FirmaData } from "@/components/firma/FirmaProfilModal";
@@ -10,12 +10,104 @@ import { apiAdminSetVisibilityByName } from "@/lib/api";
 import { useLocation } from "wouter";
 import { getFirmaSlugFromUrl, toSlug } from "@/lib/analytics";
 
-const COMPANIES: FirmaData[] = [];
+const COMPANIES: FirmaData[] = [
+  {
+    id: 1,
+    name: "Gün Halı Temizlik",
+    rating: 4.9,
+    reviews: 0,
+    location: "İstanbul",
+    tags: ["Halı Yıkama", "Kilim", "Yün Halı"],
+    verified: true,
+    isPremium: true,
+    badge: "pilot",
+    image: "",
+    phone: "",
+    bio: "Profesyonel halı, kilim ve yün halı yıkama hizmetleri. Endüstriyel makineler ve organik ürünlerle temiz ve hijyenik teslimat.",
+    founded: "2024",
+    completedJobs: 0,
+    certs: [
+      { label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" },
+    ],
+    services: [
+      { name: "Halı Yıkama", price: "120", unit: "/ m²", scope: "Endüstriyel makine, organik deterjan, kuru teslim garantisi." },
+      { name: "Kilim Yıkama", price: "150", unit: "/ m²", scope: "El yıkama, doğal kuruma, kilim şekil koruma." },
+      { name: "Yün Halı", price: "180", unit: "/ m²", scope: "Nötr deterjan, düşük ısıda kurutma, renk koruma." },
+    ],
+    galleryColors: [
+      { gradient: "from-amber-400 to-orange-500", icon: Layers, label: "Halı Yıkama" },
+      { gradient: "from-orange-400 to-rose-400", icon: Wind, label: "Kilim" },
+      { gradient: "from-teal-400 to-emerald-500", icon: SprayCan, label: "Organik Ürünler" },
+    ],
+    reviewList: [],
+  },
+  {
+    id: 2,
+    name: "Cleanlink Temizlik",
+    rating: 4.9,
+    reviews: 0,
+    location: "İstanbul",
+    tags: ["Ev Temizliği", "Ofis", "Derin Temizlik"],
+    verified: true,
+    isPremium: true,
+    badge: "pilot",
+    image: "",
+    phone: "",
+    bio: "Ev, ofis ve inşaat sonrası temizlik hizmetlerinde güvenilir çözüm ortağınız. Çevre dostu ürünler ve eğitimli personel ile kaliteli hizmet.",
+    founded: "2024",
+    completedJobs: 0,
+    certs: [
+      { label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" },
+    ],
+    services: [
+      { name: "2+1 Ev Temizliği", price: "1.500", unit: "/ ziyaret", scope: "Tüm odalar, mutfak, banyo dezenfeksiyonu dahil." },
+      { name: "3+1 Ev Temizliği", price: "2.200", unit: "/ ziyaret", scope: "Balkon, dolap içleri ve fırın temizliği de dahil." },
+      { name: "Ofis Temizliği", price: "850", unit: "/ gün", scope: "50m²'ye kadar ofis, ortak alan ve tuvalet." },
+    ],
+    galleryColors: [
+      { gradient: "from-teal-400 to-primary", icon: Home, label: "Ev Temizliği" },
+      { gradient: "from-emerald-400 to-teal-500", icon: SprayCan, label: "Derin Temizlik" },
+      { gradient: "from-cyan-400 to-sky-500", icon: Wind, label: "Ofis Temizliği" },
+    ],
+    reviewList: [],
+  },
+  {
+    id: 3,
+    name: "Elitplus+ Koltuk Yıkama",
+    rating: 4.9,
+    reviews: 0,
+    location: "İstanbul",
+    tags: ["Koltuk Yıkama", "Araç İçi", "Buharlı"],
+    verified: true,
+    isPremium: true,
+    badge: "pilot",
+    image: "",
+    phone: "",
+    bio: "Buharlı yıkama teknolojisiyle koltuk, L koltuk ve araç içi temizliğinde uzman. Aynı gün servis ve hızlı kuruma garantisi.",
+    founded: "2024",
+    completedJobs: 0,
+    certs: [
+      { label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" },
+    ],
+    services: [
+      { name: "L Koltuk Yıkama", price: "650", unit: "/ set", scope: "Buharlı derin temizlik, leke ve koku giderme." },
+      { name: "Tekli Koltuk", price: "200", unit: "/ adet", scope: "Standart koltuk buharlı yıkama." },
+      { name: "Araç İçi Temizlik", price: "450", unit: "/ araç", scope: "Koltuk ve tavan buharlı yıkama, koku giderme." },
+    ],
+    galleryColors: [
+      { gradient: "from-sky-400 to-blue-500", icon: Sofa, label: "Koltuk Yıkama" },
+      { gradient: "from-blue-400 to-indigo-500", icon: Wind, label: "Buhar Sistemi" },
+      { gradient: "from-indigo-400 to-violet-500", icon: SprayCan, label: "Araç İçi" },
+    ],
+    reviewList: [],
+  },
+];
 
 const BADGE_CARD = {
   one_cikan: { label: "⭐ Öne Çıkan", style: "bg-violet-100 text-violet-700 border-violet-200" },
   acil: { label: "⚡ Acil Hizmet", style: "bg-orange-100 text-orange-700 border-orange-200" },
   en_iyi_fiyat: { label: "💰 En İyi Fiyat", style: "bg-green-100 text-green-700 border-green-200" },
+  pilot: { label: "🚀 Pilot Firma", style: "bg-teal-100 text-teal-700 border-teal-200" },
 };
 
 /** Firms with 500+ completed jobs earn the "Doğa Dostu İşletme" badge */
