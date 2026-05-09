@@ -1,0 +1,65 @@
+{
+  "name": "CleanLink — Türkiye'nin Temizlik Marketplace'i",
+  "short_name": "CleanLink",
+  "description": "Onaylı temizlik firmalarından anında randevu alın. Halı, koltuk, ev, araç temizliği için güvenli ödeme.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#6d28d9",
+  "lang": "tr",
+  "dir": "ltr",
+  "categories": ["business", "lifestyle", "shopping"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Firmalar",
+      "short_name": "Firmalar",
+      "url": "/firmalar",
+      "description": "Tüm temizlik firmalarını gör",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Fiyat Hesapla",
+      "short_name": "Hesapla",
+      "url": "/#hesaplama",
+      "description": "Anında fiyat hesapla",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/opengraph.jpg",
+      "sizes": "1200x630",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "CleanLink ana sayfa"
+    }
+  ]
+}
