@@ -90,7 +90,10 @@ router.put("/vendors/me", requireAuth, async (req: AuthRequest, res) => {
     return;
   }
 
-  const { bio, phone, whatsappPhone, regions, isSubscribed, isSponsor, isPublished, prices, serviceScopes, galleryUrls, certUrls } = req.body;
+  /* isSubscribed and isSponsor are billing-state fields managed exclusively by
+     admin actions or verified payment callbacks. Vendors must never be able to
+     self-assign these via their own profile update endpoint. */
+  const { bio, phone, whatsappPhone, regions, isPublished, prices, serviceScopes, galleryUrls, certUrls } = req.body;
 
   /* RBAC: phone/whatsapp düzenleme yalnızca abone/sponsor için izinli */
   if (phone !== undefined || whatsappPhone !== undefined) {
@@ -106,20 +109,10 @@ router.put("/vendors/me", requireAuth, async (req: AuthRequest, res) => {
   }
 
   try {
-    /* Eğer firma isPublished: true gönderiyorsa → admin onayı gerekiyor.
-       Direkt yayına almak yerine subscriptionPending: true set et + admin'e bildir. */
-    let interceptPublish = false;
-    if (isPublished === true) {
-      const [current] = await db
-        .select({ isPublished: vendorProfilesTable.isPublished, isSubscribed: vendorProfilesTable.isSubscribed, isSponsor: vendorProfilesTable.isSponsor })
-        .from(vendorProfilesTable)
-        .where(eq(vendorProfilesTable.userId, userId))
-        .limit(1);
-      /* Sadece şu an yayında değilse ve zaten ödeme üyesi değilse intercept et */
-      if (current && !current.isPublished && !current.isSubscribed && !current.isSponsor) {
-        interceptPublish = true;
-      }
-    }
+    /* isPublished: true is always intercepted — vendors can never directly publish
+       themselves regardless of subscription state. Publication requires admin approval.
+       Vendors may still set isPublished: false to unpublish their own listing. */
+    const interceptPublish = isPublished === true;
 
     const [user] = interceptPublish
       ? await db.select({ name: usersTable.name, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, userId)).limit(1)
@@ -132,12 +125,12 @@ router.put("/vendors/me", requireAuth, async (req: AuthRequest, res) => {
         ...(phone !== undefined && { phone }),
         ...(whatsappPhone !== undefined && { whatsappPhone }),
         ...(regions !== undefined && { regions }),
-        ...(isSubscribed !== undefined && { isSubscribed }),
-        ...(isSponsor !== undefined && { isSponsor }),
-        /* isPublished intercept: eğer admin onayı gerekiyorsa isPublished: true YAPMA, subscriptionPending: true set et */
+        /* isSubscribed and isSponsor are intentionally omitted — not settable by vendors */
+        /* isPublished: true always routes through admin-approval flow;
+           isPublished: false (unpublish) is allowed directly */
         ...(interceptPublish
           ? { subscriptionPending: true }
-          : isPublished !== undefined ? { isPublished } : {}),
+          : isPublished === false ? { isPublished: false } : {}),
         ...(prices !== undefined && { prices }),
         ...(serviceScopes !== undefined && { serviceScopes }),
         ...(galleryUrls !== undefined && { galleryUrls }),
