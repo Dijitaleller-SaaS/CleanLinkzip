@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
 import { db, usersTable, vendorProfilesTable, passwordResetTokensTable } from "@workspace/db";
-import { eq, lt } from "drizzle-orm";
+import { eq, lt, sql } from "drizzle-orm";
 import { signToken } from "../lib/jwt";
 import { requireAuth, type AuthRequest } from "../lib/authMiddleware";
 import { sendMail, buildNewFirmaHtml } from "../lib/mailer";
@@ -57,6 +57,12 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
 
   const userRole = role === "firma" ? "firma" : "musteri";
 
+  /* Prevent anyone from self-registering the admin account */
+  if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    res.status(403).json({ error: "Bu e-posta adresiyle kayıt oluşturulamaz" });
+    return;
+  }
+
   try {
     const existing = await db
       .select({ id: usersTable.id })
@@ -80,7 +86,7 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
       await db.insert(vendorProfilesTable).values({ userId: user.id });
     }
 
-    const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role });
+    const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role, tokenVersion: user.tokenVersion });
 
     /* Admin bildirimi — yeni firma kaydı */
     if (userRole === "firma") {
@@ -132,7 +138,7 @@ router.post("/auth/login", loginLimiter, async (req, res) => {
       return;
     }
 
-    const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role });
+    const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role, tokenVersion: user.tokenVersion });
 
     res.json({
       token,
@@ -216,7 +222,10 @@ router.post("/auth/reset-password", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, entry.userId));
+    /* Update password and increment tokenVersion atomically to invalidate all existing JWT sessions */
+    await db.update(usersTable)
+      .set({ passwordHash, tokenVersion: sql`token_version + 1` })
+      .where(eq(usersTable.id, entry.userId));
     await db.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.token, token));
     res.json({ success: true });
   } catch {

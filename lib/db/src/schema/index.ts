@@ -12,6 +12,7 @@ export const usersTable = pgTable("users", {
   passwordHash: text("password_hash"),
   googleId:     varchar("google_id", { length: 128 }).unique(),
   role:         varchar("role", { length: 20 }).notNull().default("musteri"),
+  tokenVersion: integer("token_version").notNull().default(1),
   createdAt:    timestamp("created_at").defaultNow().notNull(),
 });
 

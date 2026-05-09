@@ -281,17 +281,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
 
   /* Verify JWT on startup — sync server-side user state.
-     Also handles ?google_token=JWT from Google OAuth callback. */
+     Also handles #google_token=JWT from Google OAuth callback (URL fragment keeps token out of server logs). */
   useEffect(() => {
-    /* If Google OAuth just redirected here, grab token from URL first */
+    /* If Google OAuth just redirected here, grab token from URL fragment first */
+    const hash = window.location.hash.slice(1); // strip leading '#'
+    const hashParams = new URLSearchParams(hash);
+    const googleToken = hashParams.get("google_token");
+    /* Also check query string for google_error (error redirects still use query param) */
     const urlParams = new URLSearchParams(window.location.search);
-    const googleToken = urlParams.get("google_token");
     const googleError = urlParams.get("google_error");
     if (googleToken) {
       localStorage.setItem("cleanlink_jwt", googleToken);
-      const clean = new URL(window.location.href);
-      clean.searchParams.delete("google_token");
-      window.history.replaceState({}, "", clean.toString());
+      /* Clear the fragment immediately so the token is not in browser history */
+      window.history.replaceState({}, "", window.location.pathname + window.location.search);
     } else if (googleError) {
       const clean = new URL(window.location.href);
       clean.searchParams.delete("google_error");

@@ -100,14 +100,15 @@ router.get("/auth/google/callback", async (req, res) => {
     }
 
     const token = signToken({
-      userId: user.id,
-      email:  user.email,
-      name:   user.name,
-      role:   user.role,
+      userId:       user.id,
+      email:        user.email,
+      name:         user.name,
+      role:         user.role,
+      tokenVersion: user.tokenVersion,
     });
 
-    /* Redirect to frontend with token in URL fragment (not query — avoids server logs) */
-    res.redirect(`${APP_URL}/?google_token=${token}`);
+    /* Redirect to frontend with token in URL fragment — never appears in server logs or Referer headers */
+    res.redirect(`${APP_URL}/#google_token=${token}`);
   } catch (err) {
     req.log.error({ err }, "Google OAuth callback error");
     res.redirect(`${APP_URL}/?google_error=server_error`);

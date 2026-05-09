@@ -80972,6 +80972,7 @@ var usersTable = pgTable("users", {
   passwordHash: text("password_hash"),
   googleId: varchar("google_id", { length: 128 }).unique(),
   role: varchar("role", { length: 20 }).notNull().default("musteri"),
+  tokenVersion: integer("token_version").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 var insertUserSchema = createInsertSchema(usersTable).omit({ id: true, createdAt: true });
@@ -81167,7 +81168,10 @@ var db = drizzle(pool, { schema: schema_exports });
 
 // src/lib/jwt.ts
 var import_jsonwebtoken = __toESM(require_jsonwebtoken(), 1);
-var JWT_SECRET = process.env.JWT_SECRET ?? "cleanlink-dev-secret-2024";
+var JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable must be set. Refusing to start with an insecure default.");
+}
 var JWT_EXPIRES = "30d";
 function signToken(payload) {
   return import_jsonwebtoken.default.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
@@ -81177,14 +81181,20 @@ function verifyToken(token) {
 }
 
 // src/lib/authMiddleware.ts
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
     res.status(401).json({ error: "Yetkisiz eri\u015Fim" });
     return;
   }
   try {
-    req.jwtUser = verifyToken(header.slice(7));
+    const payload = verifyToken(header.slice(7));
+    const [user] = await db.select({ tokenVersion: usersTable.tokenVersion }).from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
+    if (!user || user.tokenVersion !== payload.tokenVersion) {
+      res.status(401).json({ error: "Oturum ge\xE7ersiz. L\xFCtfen tekrar giri\u015F yap\u0131n." });
+      return;
+    }
+    req.jwtUser = payload;
     next();
   } catch {
     res.status(401).json({ error: "Ge\xE7ersiz veya s\xFCresi dolmu\u015F token" });
@@ -81445,6 +81455,10 @@ router2.post("/auth/register", registerLimiter, async (req, res) => {
     return;
   }
   const userRole = role === "firma" ? "firma" : "musteri";
+  if (email3.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    res.status(403).json({ error: "Bu e-posta adresiyle kay\u0131t olu\u015Fturulamaz" });
+    return;
+  }
   try {
     const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email3.toLowerCase())).limit(1);
     if (existing.length > 0) {
@@ -81456,7 +81470,7 @@ router2.post("/auth/register", registerLimiter, async (req, res) => {
     if (userRole === "firma") {
       await db.insert(vendorProfilesTable).values({ userId: user.id });
     }
-    const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role });
+    const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role, tokenVersion: user.tokenVersion });
     if (userRole === "firma") {
       sendMail({
         to: ADMIN_EMAIL,
@@ -81494,7 +81508,7 @@ router2.post("/auth/login", loginLimiter, async (req, res) => {
       res.status(401).json({ error: "E-posta veya \u015Fifre hatal\u0131" });
       return;
     }
-    const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role });
+    const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role, tokenVersion: user.tokenVersion });
     res.json({
       token,
       user: { id: user.id, email: user.email, name: user.name, role: user.role }
@@ -81563,7 +81577,7 @@ router2.post("/auth/reset-password", async (req, res) => {
       return;
     }
     const passwordHash = await bcryptjs_default.hash(password, 10);
-    await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, entry.userId));
+    await db.update(usersTable).set({ passwordHash, tokenVersion: sql`token_version + 1` }).where(eq(usersTable.id, entry.userId));
     await db.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.token, token));
     res.json({ success: true });
   } catch {
@@ -81657,9 +81671,10 @@ router3.get("/auth/google/callback", async (req, res) => {
       userId: user.id,
       email: user.email,
       name: user.name,
-      role: user.role
+      role: user.role,
+      tokenVersion: user.tokenVersion
     });
-    res.redirect(`${APP_URL2}/?google_token=${token}`);
+    res.redirect(`${APP_URL2}/#google_token=${token}`);
   } catch (err) {
     req.log.error({ err }, "Google OAuth callback error");
     res.redirect(`${APP_URL2}/?google_error=server_error`);
