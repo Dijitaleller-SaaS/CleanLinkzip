@@ -9,10 +9,8 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-NODE_ENV = "development"
 LOG_LEVEL = "info"
 PAYTR_TEST_MODE = "1"
-APP_BASE_URL = "https://334e0fd1-504d-4b82-8130-4853f85e9e31-00-1s15togz0t60d.sisko.replit.dev"
 APP_URL = "https://cleanlinktr.com"
 ADMIN_EMAIL = "serkan@dijitaleller.com"
 SMTP_HOST = "smtp.yandex.com"
@@ -20,6 +18,14 @@ SMTP_PORT = "465"
 SMTP_FROM = "noreply@cleanlink.com"
 GOOGLE_CALLBACK_URL = "https://cleanlinktr.com/api/auth/google/callback"
 GOOGLE_CLIENT_ID = "24500124966-8g42fd3losnhr06bn8v6tr3tk8qll9j6.apps.googleusercontent.com"
+
+[userenv.development]
+NODE_ENV = "development"
+APP_BASE_URL = "https://334e0fd1-504d-4b82-8130-4853f85e9e31-00-1s15togz0t60d.sisko.replit.dev"
+
+[userenv.production]
+NODE_ENV = "production"
+APP_BASE_URL = "https://cleanlinktr.com"
 
 [workflows]
 runButton = "Project"
