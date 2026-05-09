@@ -9,6 +9,10 @@ import { sendMail, buildNewFirmaHtml } from "../lib/mailer";
 
 const APP_URL = process.env.APP_URL ?? "https://cleanlinktr.com";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
+const ADMIN_EMAILS = [ADMIN_EMAIL.toLowerCase(), "serkcel@gmail.com"];
+function isAdminEmail(email: string) {
+  return ADMIN_EMAILS.includes(email.toLowerCase());
+}
 
 const router = Router();
 
@@ -55,13 +59,8 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
     return;
   }
 
-  const userRole = role === "firma" ? "firma" : "musteri";
-
-  /* Prevent anyone from self-registering the admin account */
-  if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    res.status(403).json({ error: "Bu e-posta adresiyle kayıt oluşturulamaz" });
-    return;
-  }
+  /* Admin e-postalar otomatik admin rolü alır */
+  const userRole = isAdminEmail(email) ? "admin" : (role === "firma" ? "firma" : "musteri");
 
   try {
     const existing = await db

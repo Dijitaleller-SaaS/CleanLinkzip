@@ -81427,6 +81427,10 @@ function buildApprovalHtml(opts) {
 // src/routes/auth.ts
 var APP_URL = process.env.APP_URL ?? "https://cleanlinktr.com";
 var ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
+var ADMIN_EMAILS = [ADMIN_EMAIL.toLowerCase(), "serkcel@gmail.com"];
+function isAdminEmail(email3) {
+  return ADMIN_EMAILS.includes(email3.toLowerCase());
+}
 var router2 = (0, import_express2.Router)();
 var loginLimiter = rate_limit_default({
   windowMs: 15 * 60 * 1e3,
@@ -81461,11 +81465,7 @@ router2.post("/auth/register", registerLimiter, async (req, res) => {
     res.status(400).json({ error: "\u015Eifre en az 6 karakter olmal\u0131d\u0131r" });
     return;
   }
-  const userRole = role === "firma" ? "firma" : "musteri";
-  if (email3.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    res.status(403).json({ error: "Bu e-posta adresiyle kay\u0131t olu\u015Fturulamaz" });
-    return;
-  }
+  const userRole = isAdminEmail(email3) ? "admin" : role === "firma" ? "firma" : "musteri";
   try {
     const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email3.toLowerCase())).limit(1);
     if (existing.length > 0) {

@@ -80,7 +80,7 @@ const COMPANIES: FirmaData[] = [
     name: "Elitplus+ Koltuk Yıkama",
     rating: 4.9,
     reviews: 0,
-    location: "İstanbul / Kadıköy",
+    location: "İstanbul / Gaziosmanpaşa",
     tags: ["Koltuk Yıkama", "Araç İçi", "Buharlı"],
     verified: true,
     isPremium: true,
@@ -332,16 +332,19 @@ export function FeaturedCompanies() {
                           </span>
                         )}
                       </h3>
-                      {/* Doğa Dostu İşletme rozeti */}
-                      {(company.isNatureFriendly || (company.completedJobs ?? 0) >= NATURE_FRIENDLY_THRESHOLD) && (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold mt-0.5 w-fit">
-                          🌳 Doğa Dostu İşletme
-                        </div>
-                      )}
-                      {/* Pati Seçeneği rozeti */}
-                      {company.hasPati && (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 text-[10px] font-bold mt-0.5 w-fit">
-                          🐾 Pati Seçeneği
+                      {/* Rozet satırı — tek flex row */}
+                      {((company.isNatureFriendly || (company.completedJobs ?? 0) >= NATURE_FRIENDLY_THRESHOLD) || company.hasPati) && (
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          {(company.isNatureFriendly || (company.completedJobs ?? 0) >= NATURE_FRIENDLY_THRESHOLD) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold">
+                              🌳 Doğa Dostu İşletme
+                            </span>
+                          )}
+                          {company.hasPati && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 text-[10px] font-bold">
+                              🐾 Pati Seçeneği
+                            </span>
+                          )}
                         </div>
                       )}
                       <div className="flex items-center text-sm text-muted-foreground mt-0.5">

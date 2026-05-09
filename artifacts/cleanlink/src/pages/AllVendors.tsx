@@ -10,6 +10,13 @@ import { toSlug } from "@/lib/analytics";
 import { apiAdminSetVisibilityByName } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
+/* Pilot firmalar DB'de kayıtlı olmasa da her zaman gösterilir */
+const PILOT_VENDORS: VendorEntry[] = [
+  { name: "Gün Halı Temizlik",       isPublished: true, joinedAt: 0, isSubscribed: true, isSponsor: false, hasPati: true, isNatureFriendly: true, city: "İstanbul", district: "Şişli",          regions: ["Şişli","Kağıthane","Sarıyer","Beyoğlu","Beşiktaş"] },
+  { name: "Cleanlink Temizlik",      isPublished: true, joinedAt: 0, isSubscribed: true, isSponsor: false, hasPati: true, isNatureFriendly: true, city: "İstanbul", district: "Beşiktaş",       regions: ["Beşiktaş","Şişli","Beyoğlu","Bağcılar","Küçükçekmece"] },
+  { name: "Elitplus+ Koltuk Yıkama", isPublished: true, joinedAt: 0, isSubscribed: true, isSponsor: false, hasPati: true, isNatureFriendly: true, city: "İstanbul", district: "Gaziosmanpaşa", regions: ["Gaziosmanpaşa","Bağcılar","Eyüpsultan","Küçükçekmece","Fatih"] },
+];
+
 const STATIC_FIRM_DATA: Record<string, Partial<FirmaData>> = {
   "Gün Halı Temizlik": {
     id: 1, rating: 4.9, reviews: 0,
@@ -41,7 +48,7 @@ const STATIC_FIRM_DATA: Record<string, Partial<FirmaData>> = {
   },
   "Elitplus+ Koltuk Yıkama": {
     id: 3, rating: 4.9, reviews: 0,
-    location: "İstanbul / Kadıköy", tags: ["Koltuk Yıkama", "Araç İçi", "Buharlı"],
+    location: "İstanbul / Gaziosmanpaşa", tags: ["Koltuk Yıkama", "Araç İçi", "Buharlı"],
     verified: true, isPremium: true, badge: "pilot", image: "",
     phone: "", hasPati: true, isNatureFriendly: true,
     bio: "Buharlı yıkama teknolojisiyle koltuk, L koltuk ve araç içi temizliğinde uzman. Aynı gün servis ve hızlı kuruma garantisi.",
@@ -143,7 +150,7 @@ export default function AllVendors() {
   const [vendorOverrides, setVendorOverrides] = useState<Record<string, VendorStatusOverride>>({});
   const [loadingActions, setLoadingActions] = useState<Record<string, "approve" | "extend">>({});
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.email === ADMIN_EMAIL || user?.email === "serkcel@gmail.com" || (user as { role?: string })?.role === "admin";
 
   const handleAdminRemove = (e: React.MouseEvent, firmaName: string) => {
     e.stopPropagation();
@@ -199,7 +206,14 @@ export default function AllVendors() {
   };
 
   const allFirms = useMemo(() => {
-    const list = vendors
+    /* Pilot firmaları API'den gelmeyen isimler için başa ekle */
+    const pilotNames = new Set(vendors.map(v => v.name));
+    const mergedVendors = [
+      ...PILOT_VENDORS.filter(p => !pilotNames.has(p.name)),
+      ...vendors,
+    ];
+
+    const list = mergedVendors
       .filter(v => {
         /* Sponsor firmalar ana sayfadaki carousel'de gösterilir — buradan çıkar */
         const override = vendorOverrides[v.name];
@@ -365,6 +379,20 @@ export default function AllVendors() {
                         <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                           <MapPin className="w-3 h-3" /> {firma.location}
                         </div>
+                        {(firma.isNatureFriendly || firma.hasPati) && (
+                          <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                            {firma.isNatureFriendly && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold">
+                                🌳 Doğa Dostu İşletme
+                              </span>
+                            )}
+                            {firma.hasPati && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 text-[10px] font-bold">
+                                🐾 Pati Seçeneği
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-1 text-xs font-semibold text-amber-600 flex-shrink-0">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />

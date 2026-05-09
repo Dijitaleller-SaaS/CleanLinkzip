@@ -11,14 +11,11 @@ import { BookingModal, BookingServiceItem } from "@/components/booking/BookingMo
 import { FirmaProfilModal, FirmaData } from "@/components/firma/FirmaProfilModal";
 import { SprayCan } from "lucide-react";
 
-/* ── Seed firm routing table ── */
+/* ── Pilot firm routing table ── */
 const SEED_ROUTING: { name: string; regions: string[]; tier: number }[] = [
-  { name: "Yıldız Temizlik",  regions: ["Kadıköy","Üsküdar","Ataşehir","Maltepe","Kartal"],           tier: 3 },
-  { name: "Usta Yıkama",      regions: ["Beşiktaş","Şişli","Beyoğlu","Sarıyer","Fatih"],              tier: 3 },
-  { name: "Kristal Temizlik", regions: ["Ataşehir","Kadıköy","Pendik","Maltepe","Kartal"],             tier: 3 },
-  { name: "Parlak Evler",     regions: ["Şişli","Beyoğlu","Eyüpsultan","Gaziosmanpaşa","Bağcılar"],   tier: 2 },
-  { name: "Anadolu Yıkama",   regions: ["Pendik","Tuzla","Kartal","Maltepe","Ataşehir"],              tier: 3 },
-  { name: "Pırıl Temizlik",   regions: ["Maltepe","Pendik","Tuzla","Kartal","Üsküdar"],               tier: 2 },
+  { name: "Gün Halı Temizlik",       regions: ["Şişli","Kağıthane","Sarıyer","Beyoğlu","Beşiktaş"],               tier: 3 },
+  { name: "Cleanlink Temizlik",      regions: ["Beşiktaş","Şişli","Beyoğlu","Bağcılar","Küçükçekmece"],           tier: 3 },
+  { name: "Elitplus+ Koltuk Yıkama", regions: ["Gaziosmanpaşa","Bağcılar","Eyüpsultan","Küçükçekmece","Fatih"],   tier: 3 },
 ];
 
 function findBestFirma(ilce: string, vendors: { name: string; isPublished: boolean }[]): string | null {
@@ -625,6 +622,21 @@ export function SmartCalculator() {
                         </button>
                       </div>
                       <div className="px-5 py-4">
+                        {districtFirmas.length === 0 && (
+                          <div className="py-8 text-center space-y-3">
+                            <p className="text-4xl">📍</p>
+                            <p className="text-base font-semibold text-foreground">Bu bölgede henüz hizmet yok</p>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              Pilot hizmet bölgemiz büyüyor.<br />Yakında burada da hizmet vereceğiz.
+                            </p>
+                            <button
+                              onClick={() => setPickerStep("district")}
+                              className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                            >
+                              <ChevronLeft className="w-4 h-4" /> Başka bölge seç
+                            </button>
+                          </div>
+                        )}
                         <div className="space-y-2 max-h-72 overflow-y-auto">
                           {districtFirmas.map((f, idx) => {
                             const tierLabel = f.tier === 3
