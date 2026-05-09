@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin-dashboard
+Disallow: /firma-dashboard
+Disallow: /sifre-sifirla
+Disallow: /api/
+
+Sitemap: https://cleanlinktr.replit.app/api/sitemap.xml

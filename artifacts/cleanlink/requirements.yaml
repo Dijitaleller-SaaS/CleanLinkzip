@@ -1,0 +1,22 @@
+packages:
+  "framer-motion": "For smooth entry and interaction animations"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility for merging tailwind classes without style conflicts"
+
+images:
+  - path: "artifacts/cleanlink/public/images/hero-cleaning.png"
+    description: "A bright, clean, modern minimalist living room with sparkling floors and natural sunlight, subtle teal and green accents, soft focus background, highly professional and welcoming"
+    aspect_ratio: "16:9"
+  - path: "artifacts/cleanlink/public/images/company-1.png"
+    description: "A professional cleaning service logo or placeholder featuring a sparkling star and modern typography in teal and gold"
+    aspect_ratio: "1:1"
+  - path: "artifacts/cleanlink/public/images/company-2.png"
+    description: "A professional cleaning service logo or placeholder featuring a water drop and modern typography in teal and blue"
+    aspect_ratio: "1:1"
+  - path: "artifacts/cleanlink/public/images/company-3.png"
+    description: "A professional cleaning service logo or placeholder featuring a house silhouette and modern typography in teal and green"
+    aspect_ratio: "1:1"
+
+notes:
+  - Frontend only application with static data.
+  - Using Radix UI primitives via shadcn/ui components assumed to be present.
