@@ -82016,21 +82016,24 @@ router5.delete("/admin/coupons/:id", requireAuth, requireAdmin, async (req, res)
   await logAudit(req, "coupon.delete", deleted.code, { id });
   res.json({ ok: true });
 });
-async function validateAndComputeDiscount(rawCode, orderTotal) {
+async function redeemCoupon(rawCode, orderTotal) {
   const code = rawCode.trim().toUpperCase();
   const [c] = await db.select().from(couponsTable).where(eq(couponsTable.code, code)).limit(1);
   if (!c || !c.isActive) throw new Error("invalid");
   const now = /* @__PURE__ */ new Date();
   if (c.validFrom && c.validFrom > now) throw new Error("not_active");
   if (c.validUntil && c.validUntil < now) throw new Error("expired");
-  if (c.maxUses > 0 && c.usedCount >= c.maxUses) throw new Error("limit");
   if (orderTotal < c.minOrderTotal) throw new Error("min_total");
   const discount = c.discountType === "percent" ? Math.round(orderTotal * c.discountValue / 100) : Math.min(c.discountValue, orderTotal);
+  const updated = await db.update(couponsTable).set({ usedCount: sql`${couponsTable.usedCount} + 1` }).where(
+    and(
+      eq(couponsTable.code, code),
+      eq(couponsTable.isActive, true),
+      sql`(${couponsTable.maxUses} = 0 OR ${couponsTable.usedCount} < ${couponsTable.maxUses})`
+    )
+  ).returning();
+  if (updated.length === 0) throw new Error("limit");
   return { code, discountAmount: discount };
-}
-async function incrementCouponUsage(code) {
-  if (!code) return;
-  await db.update(couponsTable).set({ usedCount: sql`${couponsTable.usedCount} + 1` }).where(eq(couponsTable.code, code.trim().toUpperCase()));
 }
 var coupons_default = router5;
 
@@ -82169,7 +82172,7 @@ router6.post("/orders", requireAuth, async (req, res) => {
   let discountAmount = 0;
   if (typeof body.couponCode === "string" && body.couponCode.trim()) {
     try {
-      const v = await validateAndComputeDiscount(body.couponCode.trim(), body.total);
+      const v = await redeemCoupon(body.couponCode.trim(), body.total);
       couponCode = v.code;
       discountAmount = v.discountAmount;
     } catch {
@@ -82198,7 +82201,6 @@ router6.post("/orders", requireAuth, async (req, res) => {
       couponCode,
       discountAmount
     }).returning();
-    if (couponCode) await incrementCouponUsage(couponCode);
     await notify(
       vendorUser.id,
       "new_order",

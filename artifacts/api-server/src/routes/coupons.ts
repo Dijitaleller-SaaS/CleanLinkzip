@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, couponsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/authMiddleware";
 import { requireAdmin } from "../lib/adminMiddleware";
 import { logAudit } from "../lib/auditLog";
@@ -90,31 +90,61 @@ router.delete("/admin/coupons/:id", requireAuth, requireAdmin, async (req, res) 
   res.json({ ok: true });
 });
 
-/* helper for orders.ts: validate + compute discount (server-internal) */
-export async function validateAndComputeDiscount(
+/* Known coupon-domain error codes that callers may swallow safely */
+export const COUPON_ERRORS = new Set([
+  "invalid", "not_active", "expired", "min_total", "limit",
+]);
+
+/*
+ * helper for orders.ts: atomically validate, compute discount, and increment
+ * usage in a single conditional UPDATE.  The UPDATE only succeeds when the
+ * coupon is still within its usage limit, so concurrent requests that race
+ * past the SELECT cannot all redeem a limited-use coupon simultaneously.
+ *
+ * Accepts an optional `tx` (Drizzle transaction) so the increment can be
+ * made part of the same transaction that inserts the order — guaranteeing
+ * the increment is rolled back if the order INSERT fails.
+ */
+export async function redeemCoupon(
   rawCode: string,
   orderTotal: number,
+  tx: typeof db = db,
 ): Promise<{ code: string; discountAmount: number }> {
   const code = rawCode.trim().toUpperCase();
-  const [c] = await db.select().from(couponsTable).where(eq(couponsTable.code, code)).limit(1);
+
+  /* Read coupon for non-race-sensitive checks (dates, active flag, min total) */
+  const [c] = await tx.select().from(couponsTable).where(eq(couponsTable.code, code)).limit(1);
   if (!c || !c.isActive) throw new Error("invalid");
   const now = new Date();
   if (c.validFrom && c.validFrom > now) throw new Error("not_active");
   if (c.validUntil && c.validUntil < now) throw new Error("expired");
-  if (c.maxUses > 0 && c.usedCount >= c.maxUses) throw new Error("limit");
   if (orderTotal < c.minOrderTotal) throw new Error("min_total");
+
   const discount = c.discountType === "percent"
     ? Math.round(orderTotal * c.discountValue / 100)
     : Math.min(c.discountValue, orderTotal);
-  return { code, discountAmount: discount };
-}
 
-/* helper for orders.ts: bump usedCount */
-export async function incrementCouponUsage(code: string): Promise<void> {
-  if (!code) return;
-  await db.update(couponsTable)
+  /*
+   * Atomic conditional increment — only succeeds when the usage limit has not
+   * been reached.  maxUses = 0 means unlimited.  If a concurrent request
+   * already pushed usedCount to maxUses, this UPDATE matches zero rows and we
+   * throw "limit" before the order is inserted.
+   */
+  const updated = await tx
+    .update(couponsTable)
     .set({ usedCount: sql`${couponsTable.usedCount} + 1` })
-    .where(eq(couponsTable.code, code.trim().toUpperCase()));
+    .where(
+      and(
+        eq(couponsTable.code, code),
+        eq(couponsTable.isActive, true),
+        sql`(${couponsTable.maxUses} = 0 OR ${couponsTable.usedCount} < ${couponsTable.maxUses})`,
+      )
+    )
+    .returning();
+
+  if (updated.length === 0) throw new Error("limit");
+
+  return { code, discountAmount: discount };
 }
 
 export default router;

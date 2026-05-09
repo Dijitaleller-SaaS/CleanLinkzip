@@ -6,7 +6,7 @@ async function notify(userId: number, type: string, title: string, body: string,
   try { await db.insert(notificationsTable).values({ userId, type, title, body, link }); } catch { /* swallow */ }
 }
 import { requireAuth, type AuthRequest } from "../lib/authMiddleware";
-import { validateAndComputeDiscount, incrementCouponUsage } from "./coupons";
+import { redeemCoupon, COUPON_ERRORS } from "./coupons";
 
 const router = Router();
 
@@ -207,49 +207,61 @@ router.post("/orders", requireAuth, async (req: AuthRequest, res) => {
 
   const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
-  /* Kupon: validate + apply */
-  let couponCode = "";
-  let discountAmount = 0;
-  if (typeof body.couponCode === "string" && body.couponCode.trim()) {
-    try {
-      const v = await validateAndComputeDiscount(body.couponCode.trim(), body.total);
-      couponCode = v.code;
-      discountAmount = v.discountAmount;
-    } catch {
-      /* sessizce yok say — geçersiz kupon siparişi engellemesin */
-    }
-  }
-
+  /*
+   * Wrap coupon redemption + order INSERT in a single DB transaction.
+   * redeemCoupon() performs a conditional UPDATE (used_count < max_uses)
+   * using the same transaction object, so:
+   *   - concurrent requests cannot both claim the last coupon use, and
+   *   - if the INSERT fails the usage increment is rolled back automatically.
+   * Only known coupon-domain errors (invalid code, expired, limit reached,
+   * etc.) are silenced; unexpected DB faults propagate and return 500.
+   */
   try {
-    const [order] = await db
-      .insert(ordersTable)
-      .values({
-        id: orderId,
-        customerId: userId,
-        vendorId: vendorUser.id,
-        customerName: name,
-        customerPhone: body.customerPhone ?? "",
-        vendorName: vendorUser.name,
-        service: body.service,
-        total: Math.max(0, body.total - discountAmount),
-        status: "beklemede",
-        ilce: body.ilce ?? "",
-        mahalle: body.mahalle ?? "",
-        adres: body.adres ?? "",
-        requestedDate: body.requestedDate ?? "",
-        requestedTimeSlot: body.requestedTimeSlot ?? "",
-        visitTime: "",
-        ecoOption: body.ecoOption ?? false,
-        treesPlanted: 0,
-        musteriYeniSaatIstedi: false,
-        couponCode,
-        discountAmount,
-      })
-      .returning();
+    const order = await db.transaction(async (tx) => {
+      let couponCode = "";
+      let discountAmount = 0;
 
-    if (couponCode) await incrementCouponUsage(couponCode);
+      if (typeof body.couponCode === "string" && body.couponCode.trim()) {
+        try {
+          const v = await redeemCoupon(body.couponCode.trim(), body.total, tx);
+          couponCode = v.code;
+          discountAmount = v.discountAmount;
+        } catch (err) {
+          /* Swallow only expected coupon-domain errors; re-throw anything else */
+          if (!(err instanceof Error && COUPON_ERRORS.has(err.message))) throw err;
+        }
+      }
 
-    /* Notify vendor of new order */
+      const [inserted] = await tx
+        .insert(ordersTable)
+        .values({
+          id: orderId,
+          customerId: userId,
+          vendorId: vendorUser.id,
+          customerName: name,
+          customerPhone: body.customerPhone ?? "",
+          vendorName: vendorUser.name,
+          service: body.service,
+          total: Math.max(0, body.total - discountAmount),
+          status: "beklemede",
+          ilce: body.ilce ?? "",
+          mahalle: body.mahalle ?? "",
+          adres: body.adres ?? "",
+          requestedDate: body.requestedDate ?? "",
+          requestedTimeSlot: body.requestedTimeSlot ?? "",
+          visitTime: "",
+          ecoOption: body.ecoOption ?? false,
+          treesPlanted: 0,
+          musteriYeniSaatIstedi: false,
+          couponCode,
+          discountAmount,
+        })
+        .returning();
+
+      return inserted;
+    });
+
+    /* Notify vendor of new order (outside transaction — non-critical) */
     await notify(vendorUser.id, "new_order", "Yeni Sipariş",
       `${name} - ${body.service}`, "/firma-dashboard");
 
