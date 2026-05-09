@@ -96,6 +96,7 @@ function buildCard(vendor: VendorEntry, idx: number): FirmaData {
     const scopes = { ...defaultScopes, ...(vendor.serviceScopes ?? {}) };
     return {
       id: staticData.id ?? 200 + idx,
+      userId: vendor.userId,
       name: vendor.name,
       rating: staticData.rating ?? 4.5,
       reviews: staticData.reviews ?? 0,
@@ -125,6 +126,7 @@ function buildCard(vendor: VendorEntry, idx: number): FirmaData {
   const scopes = { ...defaultScopes, ...p.serviceScopes, ...(vendor.serviceScopes && Object.keys(vendor.serviceScopes).length > 0 ? vendor.serviceScopes : {}) };
   return {
     id: 200 + idx,
+    userId: vendor.userId,
     name: vendor.name,
     rating: 4.5,
     reviews: 0,

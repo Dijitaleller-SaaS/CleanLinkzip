@@ -33,7 +33,7 @@ function maskOrder(row: typeof ordersTable.$inferSelect, isUnlocked: boolean) {
 
 /* GET /api/orders — orders for current user */
 router.get("/orders", requireAuth, async (req: AuthRequest, res) => {
-  const { name, role, userId } = req.jwtUser!;
+  const { role, userId } = req.jwtUser!;
   try {
     if (role === "firma") {
       /* Fetch vendor profile to determine subscription status */
@@ -49,10 +49,11 @@ router.get("/orders", requireAuth, async (req: AuthRequest, res) => {
 
       const isPaid = profile ? (profile.isSubscribed || profile.isSponsor) : false;
 
+      /* Strict ID-based ownership */
       const rows = await db
         .select()
         .from(ordersTable)
-        .where(eq(ordersTable.vendorName, name))
+        .where(eq(ordersTable.vendorId, userId))
         .orderBy(ordersTable.createdAt);
 
       /* For paid vendors, all contact info visible; for free vendors mask selectively */
@@ -75,10 +76,11 @@ router.get("/orders", requireAuth, async (req: AuthRequest, res) => {
         quotaTotal: isPaid ? null : FREE_MONTHLY_QUOTA,
       });
     } else {
+      /* Strict ID-based ownership */
       const rows = await db
         .select()
         .from(ordersTable)
-        .where(eq(ordersTable.customerName, name))
+        .where(eq(ordersTable.customerId, userId))
         .orderBy(ordersTable.createdAt);
       res.json({ orders: rows.map(r => ({ ...r, isContactUnlocked: true })), isPaid: null, quotaUsed: null, quotaTotal: null });
     }
@@ -89,17 +91,17 @@ router.get("/orders", requireAuth, async (req: AuthRequest, res) => {
 
 /* POST /api/orders/:id/unlock — free vendor unlocks contact info for one order */
 router.post("/orders/:id/unlock", requireAuth, async (req: AuthRequest, res) => {
-  const { name, role, userId } = req.jwtUser!;
+  const { role, userId } = req.jwtUser!;
   if (role !== "firma") { res.status(403).json({ error: "Yalnızca firma hesapları için" }); return; }
 
   const orderId = String(req.params.id);
 
   try {
-    /* Verify order belongs to this vendor */
+    /* Strict ID-based ownership check */
     const [order] = await db
       .select()
       .from(ordersTable)
-      .where(and(eq(ordersTable.id, orderId), eq(ordersTable.vendorName, name)))
+      .where(and(eq(ordersTable.id, orderId), eq(ordersTable.vendorId, userId)))
       .limit(1);
 
     if (!order) { res.status(404).json({ error: "Sipariş bulunamadı" }); return; }
@@ -119,14 +121,14 @@ router.post("/orders/:id/unlock", requireAuth, async (req: AuthRequest, res) => 
     const isPaid = profile ? (profile.isSubscribed || profile.isSponsor) : false;
 
     if (!isPaid) {
-      /* Check monthly quota */
+      /* Check monthly quota — strict ID-based */
       const monthStart = startOfMonth();
       const [row] = await db
         .select({ c: sql<number>`count(*)::int` })
         .from(ordersTable)
         .where(
           and(
-            eq(ordersTable.vendorName, name),
+            eq(ordersTable.vendorId, userId),
             isNotNull(ordersTable.unlockedAt),
             gte(ordersTable.unlockedAt, monthStart),
           )
@@ -163,11 +165,43 @@ router.post("/orders/:id/unlock", requireAuth, async (req: AuthRequest, res) => 
 
 /* POST /api/orders — create a new order */
 router.post("/orders", requireAuth, async (req: AuthRequest, res) => {
-  const { name } = req.jwtUser!;
+  const { name, role, userId } = req.jwtUser!;
+
+  /* Only customers can place orders */
+  if (role !== "musteri") {
+    res.status(403).json({ error: "Yalnızca müşteri hesapları sipariş oluşturabilir" });
+    return;
+  }
+
   const body = req.body;
 
-  if (!body.vendorName || !body.service || body.total === undefined) {
+  if (!body.vendorId || !body.service || body.total === undefined) {
     res.status(400).json({ error: "Eksik sipariş bilgisi" });
+    return;
+  }
+
+  const vendorIdNum = parseInt(String(body.vendorId), 10);
+  if (!Number.isInteger(vendorIdNum) || vendorIdNum <= 0) {
+    res.status(400).json({ error: "Geçersiz firma kimliği" });
+    return;
+  }
+
+  /* Verify vendor exists and is published by immutable user ID */
+  const [vendorUser] = await db
+    .select({ id: usersTable.id, name: usersTable.name })
+    .from(usersTable)
+    .innerJoin(vendorProfilesTable, eq(vendorProfilesTable.userId, usersTable.id))
+    .where(
+      and(
+        eq(usersTable.id, vendorIdNum),
+        eq(usersTable.role, "firma"),
+        eq(vendorProfilesTable.isPublished, true),
+      )
+    )
+    .limit(1);
+
+  if (!vendorUser) {
+    res.status(400).json({ error: "Geçerli bir firma bulunamadı" });
     return;
   }
 
@@ -191,9 +225,11 @@ router.post("/orders", requireAuth, async (req: AuthRequest, res) => {
       .insert(ordersTable)
       .values({
         id: orderId,
+        customerId: userId,
+        vendorId: vendorUser.id,
         customerName: name,
         customerPhone: body.customerPhone ?? "",
-        vendorName: body.vendorName,
+        vendorName: vendorUser.name,
         service: body.service,
         total: Math.max(0, body.total - discountAmount),
         status: "beklemede",
@@ -214,15 +250,8 @@ router.post("/orders", requireAuth, async (req: AuthRequest, res) => {
     if (couponCode) await incrementCouponUsage(couponCode);
 
     /* Notify vendor of new order */
-    const [vendorUser] = await db
-      .select({ id: usersTable.id })
-      .from(usersTable)
-      .where(and(eq(usersTable.name, body.vendorName), eq(usersTable.role, "firma")))
-      .limit(1);
-    if (vendorUser) {
-      await notify(vendorUser.id, "new_order", "Yeni Sipariş",
-        `${name} - ${body.service}`, "/firma-dashboard");
-    }
+    await notify(vendorUser.id, "new_order", "Yeni Sipariş",
+      `${name} - ${body.service}`, "/firma-dashboard");
 
     res.status(201).json({ order: { ...order, isContactUnlocked: false } });
   } catch {
@@ -230,23 +259,42 @@ router.post("/orders", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
+/* All valid order statuses */
+const ALL_VALID_STATUSES = new Set([
+  "beklemede", "onayBekliyor", "onaylandi", "kesinlesti",
+  "tamamlandi", "iptal", "reddedildi", "zamanAsimi",
+]);
+
+/*
+ * Statuses that represent service completion or acceptance — only vendors
+ * may set these. Blocking customers from setting these closes the fabricated
+ * order → review attack: a customer cannot mark their own order complete.
+ */
+const VENDOR_ONLY_STATUSES = new Set(["tamamlandi", "onaylandi"]);
+
 /* PATCH /api/orders/:id/status — update order status (owner only) */
 router.patch("/orders/:id/status", requireAuth, async (req: AuthRequest, res) => {
   const { id } = req.params;
-  const { name, role } = req.jwtUser!;
+  const { role, userId } = req.jwtUser!;
   const { status, visitTime, proposedAt, musteriYeniSaatIstedi } = req.body;
 
   try {
     const [existing] = await db
-      .select({ customerName: ordersTable.customerName, vendorName: ordersTable.vendorName })
+      .select({
+        customerId: ordersTable.customerId,
+        vendorId:   ordersTable.vendorId,
+        customerName: ordersTable.customerName,
+        vendorName:   ordersTable.vendorName,
+      })
       .from(ordersTable)
       .where(eq(ordersTable.id, String(id)))
       .limit(1);
 
     if (!existing) { res.status(404).json({ error: "Sipariş bulunamadı" }); return; }
 
-    const isVendor   = role === "firma"   && existing.vendorName   === name;
-    const isCustomer = role === "musteri" && existing.customerName === name;
+    /* Strict ID-based authorization */
+    const isVendor   = role === "firma"   && existing.vendorId   === userId;
+    const isCustomer = role === "musteri" && existing.customerId === userId;
 
     if (!isVendor && !isCustomer) {
       res.status(403).json({ error: "Bu siparişi güncelleme yetkiniz yok" });
@@ -255,13 +303,36 @@ router.patch("/orders/:id/status", requireAuth, async (req: AuthRequest, res) =>
 
     const update: Record<string, unknown> = {};
     if (isVendor) {
-      if (status !== undefined)                update.status                = status;
+      /* Vendors may update any valid status and all scheduling fields */
+      if (status !== undefined) {
+        if (!ALL_VALID_STATUSES.has(status)) {
+          res.status(400).json({ error: "Geçersiz durum değeri" });
+          return;
+        }
+        update.status = status;
+      }
       if (visitTime !== undefined)             update.visitTime             = visitTime;
       if (proposedAt !== undefined)            update.proposedAt            = proposedAt === null ? null : new Date(proposedAt);
       if (musteriYeniSaatIstedi !== undefined) update.musteriYeniSaatIstedi = musteriYeniSaatIstedi;
     } else {
+      /*
+       * Customers may update scheduling flags and any non-privileged status.
+       * VENDOR_ONLY_STATUSES ("tamamlandi", "onaylandi") are blocked so a
+       * customer cannot self-approve a fabricated order to unlock reviews.
+       */
       if (musteriYeniSaatIstedi !== undefined) update.musteriYeniSaatIstedi = musteriYeniSaatIstedi;
-      if (status !== undefined)                update.status                = status;
+      if (status !== undefined) {
+        if (!ALL_VALID_STATUSES.has(status) || VENDOR_ONLY_STATUSES.has(status)) {
+          res.status(400).json({ error: "Geçersiz durum değeri" });
+          return;
+        }
+        update.status = status;
+      }
+    }
+
+    if (Object.keys(update).length === 0) {
+      res.status(400).json({ error: "Güncellenecek alan yok" });
+      return;
     }
 
     const [updated] = await db
@@ -270,25 +341,16 @@ router.patch("/orders/:id/status", requireAuth, async (req: AuthRequest, res) =>
       .where(eq(ordersTable.id, String(id)))
       .returning();
 
-    /* Notify the other party on status change */
-    if (status !== undefined) {
-      const otherName = isVendor ? updated.customerName : updated.vendorName;
-      const otherRole = isVendor ? "musteri" : "firma";
-      const [otherUser] = await db
-        .select({ id: usersTable.id })
-        .from(usersTable)
-        .where(and(eq(usersTable.name, otherName), eq(usersTable.role, otherRole)))
-        .limit(1);
-      if (otherUser) {
-        const labels: Record<string, string> = {
-          onaylandi: "onaylandı", iptal: "iptal edildi",
-          tamamlandi: "tamamlandı", beklemede: "beklemede",
-        };
-        await notify(otherUser.id, "order_status",
-          `Sipariş ${labels[status] ?? status}`,
-          `${updated.service} siparişiniz ${labels[status] ?? status}.`,
-          isVendor ? "/" : "/firma-dashboard");
-      }
+    /* Notify the customer when vendor changes status */
+    if (status !== undefined && isVendor && existing.customerId !== null) {
+      const labels: Record<string, string> = {
+        onaylandi: "onaylandı", iptal: "iptal edildi",
+        tamamlandi: "tamamlandı", beklemede: "beklemede",
+      };
+      await notify(existing.customerId, "order_status",
+        `Sipariş ${labels[status] ?? status}`,
+        `${updated.service} siparişiniz ${labels[status] ?? status}.`,
+        "/");
     }
 
     res.json({ order: { ...updated, isContactUnlocked: updated.unlockedAt !== null } });

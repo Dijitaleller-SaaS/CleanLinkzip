@@ -122,6 +122,7 @@ export async function extendFirmaSubscription(firmaName: string): Promise<AdminV
 /* ── Global Vendor Registry ── */
 export interface VendorEntry {
   name: string;
+  userId?: number;
   isPublished: boolean;
   joinedAt: number;
   isSponsor?: boolean;
@@ -151,6 +152,7 @@ export interface Order {
   musteriEmail?: string;
   telefon?: string;
   firmaName: string;
+  vendorUserId?: number;
   hizmet: string;
   toplam: number;
   durum: OrderDurum;
@@ -399,6 +401,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const list = await apiGetVendors();
     setVendorsState(list.map(v => ({
       name: v.name,
+      userId: v.userId,
       isPublished: v.isPublished,
       joinedAt: Date.now(),
       isSponsor: v.isSponsor,
@@ -521,7 +524,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setOrdersState(prev => [o, ...prev]);
     window.dispatchEvent(new Event("fidan_updated"));
     apiCreateOrder({
-      vendorName: o.firmaName,
+      vendorId: o.vendorUserId,
       service: o.hizmet,
       total: o.toplam,
       customerPhone: o.telefon,

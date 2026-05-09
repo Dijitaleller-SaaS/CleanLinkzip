@@ -35,6 +35,7 @@ function toWhatsAppNumber(phone: string): string {
 /* ── types ─────────────────────────────────── */
 export interface FirmaData {
   id: number;
+  userId?: number;
   name: string;
   rating: number;
   reviews: number;
@@ -222,7 +223,7 @@ export function FirmaProfilModal({ firma, onClose }: Props) {
   useEffect(() => {
     if (!firma?.name) return;
     let cancelled = false;
-    apiGetReviews(firma.name)
+    apiGetReviews(firma.userId ?? 0)
       .then(res => {
         if (cancelled) return;
         setApiReviews(res.reviews);
@@ -285,8 +286,9 @@ export function FirmaProfilModal({ firma, onClose }: Props) {
     setReviewError("");
     setSubmittingReview(true);
     try {
+      if (!firma.userId) throw new Error("Firma kimliği bulunamadı");
       const review = await apiSubmitReview({
-        vendorName: firma.name,
+        vendorId: firma.userId,
         puan: reviewPuan,
         yorum: reviewText.trim(),
         hasPhoto: !!reviewPhotoUrl,

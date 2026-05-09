@@ -81002,6 +81002,8 @@ var vendorProfilesTable = pgTable("vendor_profiles", {
 var insertVendorProfileSchema = createInsertSchema(vendorProfilesTable).omit({ id: true, updatedAt: true });
 var ordersTable = pgTable("orders", {
   id: text("id").primaryKey(),
+  customerId: integer("customer_id").references(() => usersTable.id, { onDelete: "set null" }),
+  vendorId: integer("vendor_id").references(() => usersTable.id, { onDelete: "set null" }),
   customerName: varchar("customer_name", { length: 255 }).notNull(),
   customerPhone: varchar("customer_phone", { length: 30 }).default("").notNull(),
   vendorName: varchar("vendor_name", { length: 255 }).notNull(),
@@ -81064,6 +81066,7 @@ var pilotApplicationsTable = pgTable("pilot_applications", {
 var insertPilotApplicationSchema = createInsertSchema(pilotApplicationsTable).omit({ id: true, createdAt: true });
 var reviewsTable = pgTable("reviews", {
   id: serial("id").primaryKey(),
+  vendorId: integer("vendor_id").references(() => usersTable.id, { onDelete: "set null" }),
   vendorName: varchar("vendor_name", { length: 255 }).notNull(),
   customerId: integer("customer_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   customerName: varchar("customer_name", { length: 255 }).notNull(),
@@ -82055,7 +82058,7 @@ function maskOrder(row, isUnlocked) {
   };
 }
 router6.get("/orders", requireAuth, async (req, res) => {
-  const { name, role, userId } = req.jwtUser;
+  const { role, userId } = req.jwtUser;
   try {
     if (role === "firma") {
       const [profile] = await db.select({
@@ -82063,7 +82066,7 @@ router6.get("/orders", requireAuth, async (req, res) => {
         isSponsor: vendorProfilesTable.isSponsor
       }).from(vendorProfilesTable).innerJoin(usersTable, eq(vendorProfilesTable.userId, usersTable.id)).where(eq(usersTable.id, userId)).limit(1);
       const isPaid = profile ? profile.isSubscribed || profile.isSponsor : false;
-      const rows = await db.select().from(ordersTable).where(eq(ordersTable.vendorName, name)).orderBy(ordersTable.createdAt);
+      const rows = await db.select().from(ordersTable).where(eq(ordersTable.vendorId, userId)).orderBy(ordersTable.createdAt);
       const orders = rows.map((row) => {
         if (isPaid) return { ...row, isContactUnlocked: true };
         const isUnlocked = row.unlockedAt !== null;
@@ -82080,7 +82083,7 @@ router6.get("/orders", requireAuth, async (req, res) => {
         quotaTotal: isPaid ? null : FREE_MONTHLY_QUOTA
       });
     } else {
-      const rows = await db.select().from(ordersTable).where(eq(ordersTable.customerName, name)).orderBy(ordersTable.createdAt);
+      const rows = await db.select().from(ordersTable).where(eq(ordersTable.customerId, userId)).orderBy(ordersTable.createdAt);
       res.json({ orders: rows.map((r2) => ({ ...r2, isContactUnlocked: true })), isPaid: null, quotaUsed: null, quotaTotal: null });
     }
   } catch {
@@ -82088,14 +82091,14 @@ router6.get("/orders", requireAuth, async (req, res) => {
   }
 });
 router6.post("/orders/:id/unlock", requireAuth, async (req, res) => {
-  const { name, role, userId } = req.jwtUser;
+  const { role, userId } = req.jwtUser;
   if (role !== "firma") {
     res.status(403).json({ error: "Yaln\u0131zca firma hesaplar\u0131 i\xE7in" });
     return;
   }
   const orderId = String(req.params.id);
   try {
-    const [order] = await db.select().from(ordersTable).where(and(eq(ordersTable.id, orderId), eq(ordersTable.vendorName, name))).limit(1);
+    const [order] = await db.select().from(ordersTable).where(and(eq(ordersTable.id, orderId), eq(ordersTable.vendorId, userId))).limit(1);
     if (!order) {
       res.status(404).json({ error: "Sipari\u015F bulunamad\u0131" });
       return;
@@ -82110,7 +82113,7 @@ router6.post("/orders/:id/unlock", requireAuth, async (req, res) => {
       const monthStart = startOfMonth();
       const [row] = await db.select({ c: sql`count(*)::int` }).from(ordersTable).where(
         and(
-          eq(ordersTable.vendorName, name),
+          eq(ordersTable.vendorId, userId),
           isNotNull(ordersTable.unlockedAt),
           gte(ordersTable.unlockedAt, monthStart)
         )
@@ -82135,10 +82138,30 @@ router6.post("/orders/:id/unlock", requireAuth, async (req, res) => {
   }
 });
 router6.post("/orders", requireAuth, async (req, res) => {
-  const { name } = req.jwtUser;
+  const { name, role, userId } = req.jwtUser;
+  if (role !== "musteri") {
+    res.status(403).json({ error: "Yaln\u0131zca m\xFC\u015Fteri hesaplar\u0131 sipari\u015F olu\u015Fturabilir" });
+    return;
+  }
   const body = req.body;
-  if (!body.vendorName || !body.service || body.total === void 0) {
+  if (!body.vendorId || !body.service || body.total === void 0) {
     res.status(400).json({ error: "Eksik sipari\u015F bilgisi" });
+    return;
+  }
+  const vendorIdNum = parseInt(String(body.vendorId), 10);
+  if (!Number.isInteger(vendorIdNum) || vendorIdNum <= 0) {
+    res.status(400).json({ error: "Ge\xE7ersiz firma kimli\u011Fi" });
+    return;
+  }
+  const [vendorUser] = await db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).innerJoin(vendorProfilesTable, eq(vendorProfilesTable.userId, usersTable.id)).where(
+    and(
+      eq(usersTable.id, vendorIdNum),
+      eq(usersTable.role, "firma"),
+      eq(vendorProfilesTable.isPublished, true)
+    )
+  ).limit(1);
+  if (!vendorUser) {
+    res.status(400).json({ error: "Ge\xE7erli bir firma bulunamad\u0131" });
     return;
   }
   const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -82155,9 +82178,11 @@ router6.post("/orders", requireAuth, async (req, res) => {
   try {
     const [order] = await db.insert(ordersTable).values({
       id: orderId,
+      customerId: userId,
+      vendorId: vendorUser.id,
       customerName: name,
       customerPhone: body.customerPhone ?? "",
-      vendorName: body.vendorName,
+      vendorName: vendorUser.name,
       service: body.service,
       total: Math.max(0, body.total - discountAmount),
       status: "beklemede",
@@ -82174,67 +82199,91 @@ router6.post("/orders", requireAuth, async (req, res) => {
       discountAmount
     }).returning();
     if (couponCode) await incrementCouponUsage(couponCode);
-    const [vendorUser] = await db.select({ id: usersTable.id }).from(usersTable).where(and(eq(usersTable.name, body.vendorName), eq(usersTable.role, "firma"))).limit(1);
-    if (vendorUser) {
-      await notify(
-        vendorUser.id,
-        "new_order",
-        "Yeni Sipari\u015F",
-        `${name} - ${body.service}`,
-        "/firma-dashboard"
-      );
-    }
+    await notify(
+      vendorUser.id,
+      "new_order",
+      "Yeni Sipari\u015F",
+      `${name} - ${body.service}`,
+      "/firma-dashboard"
+    );
     res.status(201).json({ order: { ...order, isContactUnlocked: false } });
   } catch {
     res.status(500).json({ error: "Sipari\u015F olu\u015Fturulurken hata olu\u015Ftu" });
   }
 });
+var ALL_VALID_STATUSES = /* @__PURE__ */ new Set([
+  "beklemede",
+  "onayBekliyor",
+  "onaylandi",
+  "kesinlesti",
+  "tamamlandi",
+  "iptal",
+  "reddedildi",
+  "zamanAsimi"
+]);
+var VENDOR_ONLY_STATUSES = /* @__PURE__ */ new Set(["tamamlandi", "onaylandi"]);
 router6.patch("/orders/:id/status", requireAuth, async (req, res) => {
   const { id } = req.params;
-  const { name, role } = req.jwtUser;
+  const { role, userId } = req.jwtUser;
   const { status, visitTime, proposedAt, musteriYeniSaatIstedi } = req.body;
   try {
-    const [existing] = await db.select({ customerName: ordersTable.customerName, vendorName: ordersTable.vendorName }).from(ordersTable).where(eq(ordersTable.id, String(id))).limit(1);
+    const [existing] = await db.select({
+      customerId: ordersTable.customerId,
+      vendorId: ordersTable.vendorId,
+      customerName: ordersTable.customerName,
+      vendorName: ordersTable.vendorName
+    }).from(ordersTable).where(eq(ordersTable.id, String(id))).limit(1);
     if (!existing) {
       res.status(404).json({ error: "Sipari\u015F bulunamad\u0131" });
       return;
     }
-    const isVendor = role === "firma" && existing.vendorName === name;
-    const isCustomer = role === "musteri" && existing.customerName === name;
+    const isVendor = role === "firma" && existing.vendorId === userId;
+    const isCustomer = role === "musteri" && existing.customerId === userId;
     if (!isVendor && !isCustomer) {
       res.status(403).json({ error: "Bu sipari\u015Fi g\xFCncelleme yetkiniz yok" });
       return;
     }
     const update = {};
     if (isVendor) {
-      if (status !== void 0) update.status = status;
+      if (status !== void 0) {
+        if (!ALL_VALID_STATUSES.has(status)) {
+          res.status(400).json({ error: "Ge\xE7ersiz durum de\u011Feri" });
+          return;
+        }
+        update.status = status;
+      }
       if (visitTime !== void 0) update.visitTime = visitTime;
       if (proposedAt !== void 0) update.proposedAt = proposedAt === null ? null : new Date(proposedAt);
       if (musteriYeniSaatIstedi !== void 0) update.musteriYeniSaatIstedi = musteriYeniSaatIstedi;
     } else {
       if (musteriYeniSaatIstedi !== void 0) update.musteriYeniSaatIstedi = musteriYeniSaatIstedi;
-      if (status !== void 0) update.status = status;
+      if (status !== void 0) {
+        if (!ALL_VALID_STATUSES.has(status) || VENDOR_ONLY_STATUSES.has(status)) {
+          res.status(400).json({ error: "Ge\xE7ersiz durum de\u011Feri" });
+          return;
+        }
+        update.status = status;
+      }
+    }
+    if (Object.keys(update).length === 0) {
+      res.status(400).json({ error: "G\xFCncellenecek alan yok" });
+      return;
     }
     const [updated] = await db.update(ordersTable).set(update).where(eq(ordersTable.id, String(id))).returning();
-    if (status !== void 0) {
-      const otherName = isVendor ? updated.customerName : updated.vendorName;
-      const otherRole = isVendor ? "musteri" : "firma";
-      const [otherUser] = await db.select({ id: usersTable.id }).from(usersTable).where(and(eq(usersTable.name, otherName), eq(usersTable.role, otherRole))).limit(1);
-      if (otherUser) {
-        const labels = {
-          onaylandi: "onayland\u0131",
-          iptal: "iptal edildi",
-          tamamlandi: "tamamland\u0131",
-          beklemede: "beklemede"
-        };
-        await notify(
-          otherUser.id,
-          "order_status",
-          `Sipari\u015F ${labels[status] ?? status}`,
-          `${updated.service} sipari\u015Finiz ${labels[status] ?? status}.`,
-          isVendor ? "/" : "/firma-dashboard"
-        );
-      }
+    if (status !== void 0 && isVendor && existing.customerId !== null) {
+      const labels = {
+        onaylandi: "onayland\u0131",
+        iptal: "iptal edildi",
+        tamamlandi: "tamamland\u0131",
+        beklemede: "beklemede"
+      };
+      await notify(
+        existing.customerId,
+        "order_status",
+        `Sipari\u015F ${labels[status] ?? status}`,
+        `${updated.service} sipari\u015Finiz ${labels[status] ?? status}.`,
+        "/"
+      );
     }
     res.json({ order: { ...updated, isContactUnlocked: updated.unlockedAt !== null } });
   } catch {
@@ -82920,13 +82969,24 @@ var pilot_default = router9;
 var import_express10 = __toESM(require_express2(), 1);
 var router10 = (0, import_express10.Router)();
 router10.get("/reviews", async (req, res) => {
-  const vendor = String(req.query["vendor"] ?? "").trim();
-  if (!vendor) {
-    res.status(400).json({ error: "vendor parametresi gerekli" });
-    return;
-  }
   try {
-    const rows = await db.select().from(reviewsTable).where(and(eq(reviewsTable.vendorName, vendor), eq(reviewsTable.isApproved, true))).orderBy(desc(reviewsTable.createdAt));
+    let rows;
+    const vendorIdParam = req.query["vendorId"];
+    if (vendorIdParam !== void 0) {
+      const vendorId = parseInt(String(vendorIdParam), 10);
+      if (!Number.isInteger(vendorId) || vendorId <= 0) {
+        res.status(400).json({ error: "Ge\xE7ersiz vendorId" });
+        return;
+      }
+      rows = await db.select().from(reviewsTable).where(and(eq(reviewsTable.vendorId, vendorId), eq(reviewsTable.isApproved, true))).orderBy(desc(reviewsTable.createdAt));
+    } else {
+      const vendor = String(req.query["vendor"] ?? "").trim();
+      if (!vendor) {
+        res.status(400).json({ error: "vendor parametresi gerekli" });
+        return;
+      }
+      rows = await db.select().from(reviewsTable).where(and(eq(reviewsTable.vendorName, vendor), eq(reviewsTable.isApproved, true))).orderBy(desc(reviewsTable.createdAt));
+    }
     const avg = rows.length === 0 ? 0 : rows.reduce((s2, r2) => s2 + r2.puan, 0) / rows.length;
     res.json({
       reviews: rows,
@@ -82966,13 +83026,18 @@ router10.post("/reviews", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Yaln\u0131zca m\xFC\u015Fteriler yorum yapabilir" });
     return;
   }
-  const vendorName = String(req.body?.vendorName ?? "").trim();
+  const vendorIdParam = req.body?.vendorId;
   const puan = Number(req.body?.puan);
   const yorum = String(req.body?.yorum ?? "").trim();
   const hasPhoto = Boolean(req.body?.hasPhoto);
   const orderId = req.body?.orderId ? String(req.body.orderId) : null;
-  if (!vendorName) {
-    res.status(400).json({ error: "Firma ad\u0131 gerekli" });
+  if (!vendorIdParam) {
+    res.status(400).json({ error: "vendorId gerekli" });
+    return;
+  }
+  const vendorIdNum = parseInt(String(vendorIdParam), 10);
+  if (!Number.isInteger(vendorIdNum) || vendorIdNum <= 0) {
+    res.status(400).json({ error: "Ge\xE7ersiz firma kimli\u011Fi" });
     return;
   }
   if (!Number.isInteger(puan) || puan < 1 || puan > 5) {
@@ -82984,40 +83049,43 @@ router10.post("/reviews", requireAuth, async (req, res) => {
     return;
   }
   try {
+    const [vendorUser] = await db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).where(and(eq(usersTable.id, vendorIdNum), eq(usersTable.role, "firma"))).limit(1);
+    if (!vendorUser) {
+      res.status(400).json({ error: "Firma bulunamad\u0131" });
+      return;
+    }
     const [completed] = await db.select({ id: ordersTable.id }).from(ordersTable).where(and(
-      eq(ordersTable.customerName, name),
-      eq(ordersTable.vendorName, vendorName),
+      eq(ordersTable.customerId, userId),
+      eq(ordersTable.vendorId, vendorUser.id),
       eq(ordersTable.status, "tamamlandi")
     )).limit(1);
     if (!completed) {
       res.status(403).json({ error: "Bu firmadan tamamlanm\u0131\u015F bir sipari\u015Finiz yok" });
       return;
     }
-    const [existing] = await db.select({ id: reviewsTable.id }).from(reviewsTable).where(and(eq(reviewsTable.vendorName, vendorName), eq(reviewsTable.customerId, userId))).limit(1);
+    const [existing] = await db.select({ id: reviewsTable.id }).from(reviewsTable).where(and(eq(reviewsTable.vendorId, vendorUser.id), eq(reviewsTable.customerId, userId))).limit(1);
     if (existing) {
       res.status(409).json({ error: "Bu firma i\xE7in zaten yorum yapm\u0131\u015Fs\u0131n\u0131z" });
       return;
     }
     const [review] = await db.insert(reviewsTable).values({
-      vendorName,
+      vendorId: vendorUser.id,
+      vendorName: vendorUser.name,
       customerId: userId,
       customerName: name,
       orderId,
       puan,
       yorum,
       hasPhoto,
-      isApproved: true
+      isApproved: false
     }).returning();
-    const [vendorUser] = await db.select({ id: usersTable.id }).from(usersTable).where(and(eq(usersTable.name, vendorName), eq(usersTable.role, "firma"))).limit(1);
-    if (vendorUser) {
-      await db.insert(notificationsTable).values({
-        userId: vendorUser.id,
-        type: "review",
-        title: "Yeni Yorum",
-        body: `${name} ${puan} y\u0131ld\u0131z puan verdi.`,
-        link: "/firma-dashboard"
-      });
-    }
+    await db.insert(notificationsTable).values({
+      userId: vendorUser.id,
+      type: "review",
+      title: "Yeni Yorum",
+      body: `${name} ${puan} y\u0131ld\u0131z puan verdi.`,
+      link: "/firma-dashboard"
+    });
     res.status(201).json({ review });
   } catch {
     res.status(500).json({ error: "Yorum kaydedilemedi" });

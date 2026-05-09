@@ -5,16 +5,32 @@ import { requireAuth, type AuthRequest } from "../lib/authMiddleware";
 
 const router = Router();
 
-/* GET /api/reviews?vendor=NAME — list approved reviews for a vendor */
+/* GET /api/reviews — list approved reviews for a vendor.
+ * Accepts ?vendorId=N (preferred, ID-based) or ?vendor=NAME (legacy fallback) */
 router.get("/reviews", async (req, res) => {
-  const vendor = String(req.query["vendor"] ?? "").trim();
-  if (!vendor) { res.status(400).json({ error: "vendor parametresi gerekli" }); return; }
   try {
-    const rows = await db
-      .select()
-      .from(reviewsTable)
-      .where(and(eq(reviewsTable.vendorName, vendor), eq(reviewsTable.isApproved, true)))
-      .orderBy(desc(reviewsTable.createdAt));
+    let rows;
+    const vendorIdParam = req.query["vendorId"];
+    if (vendorIdParam !== undefined) {
+      const vendorId = parseInt(String(vendorIdParam), 10);
+      if (!Number.isInteger(vendorId) || vendorId <= 0) {
+        res.status(400).json({ error: "Geçersiz vendorId" });
+        return;
+      }
+      rows = await db
+        .select()
+        .from(reviewsTable)
+        .where(and(eq(reviewsTable.vendorId, vendorId), eq(reviewsTable.isApproved, true)))
+        .orderBy(desc(reviewsTable.createdAt));
+    } else {
+      const vendor = String(req.query["vendor"] ?? "").trim();
+      if (!vendor) { res.status(400).json({ error: "vendor parametresi gerekli" }); return; }
+      rows = await db
+        .select()
+        .from(reviewsTable)
+        .where(and(eq(reviewsTable.vendorName, vendor), eq(reviewsTable.isApproved, true)))
+        .orderBy(desc(reviewsTable.createdAt));
+    }
     const avg = rows.length === 0 ? 0 : rows.reduce((s, r) => s + r.puan, 0) / rows.length;
     res.json({
       reviews: rows,
@@ -48,29 +64,51 @@ router.get("/reviews/stats", async (req, res) => {
   }
 });
 
-/* POST /api/reviews — submit (musteri only, must have completed order with vendor) */
+/* POST /api/reviews — submit (musteri only, must have a vendor-confirmed completed order) */
 router.post("/reviews", requireAuth, async (req: AuthRequest, res) => {
   const { userId, name, role } = req.jwtUser!;
   if (role !== "musteri") { res.status(403).json({ error: "Yalnızca müşteriler yorum yapabilir" }); return; }
 
-  const vendorName = String(req.body?.vendorName ?? "").trim();
+  const vendorIdParam = req.body?.vendorId;
   const puan = Number(req.body?.puan);
   const yorum = String(req.body?.yorum ?? "").trim();
   const hasPhoto = Boolean(req.body?.hasPhoto);
   const orderId = req.body?.orderId ? String(req.body.orderId) : null;
 
-  if (!vendorName) { res.status(400).json({ error: "Firma adı gerekli" }); return; }
+  if (!vendorIdParam) { res.status(400).json({ error: "vendorId gerekli" }); return; }
+  const vendorIdNum = parseInt(String(vendorIdParam), 10);
+  if (!Number.isInteger(vendorIdNum) || vendorIdNum <= 0) {
+    res.status(400).json({ error: "Geçersiz firma kimliği" });
+    return;
+  }
   if (!Number.isInteger(puan) || puan < 1 || puan > 5) { res.status(400).json({ error: "Puan 1-5 arasında olmalı" }); return; }
   if (yorum.length < 10) { res.status(400).json({ error: "Yorum en az 10 karakter olmalı" }); return; }
 
   try {
-    /* Ensure customer has at least one completed order with this vendor */
+    /* Resolve vendor by immutable ID */
+    const [vendorUser] = await db
+      .select({ id: usersTable.id, name: usersTable.name })
+      .from(usersTable)
+      .where(and(eq(usersTable.id, vendorIdNum), eq(usersTable.role, "firma")))
+      .limit(1);
+
+    if (!vendorUser) {
+      res.status(400).json({ error: "Firma bulunamadı" });
+      return;
+    }
+
+    /*
+     * Ensure the caller has a completed order with this specific vendor,
+     * verified entirely by immutable IDs. Only vendor-driven status
+     * transitions can produce "tamamlandi", so this cannot be fabricated
+     * by a customer alone.
+     */
     const [completed] = await db
       .select({ id: ordersTable.id })
       .from(ordersTable)
       .where(and(
-        eq(ordersTable.customerName, name),
-        eq(ordersTable.vendorName, vendorName),
+        eq(ordersTable.customerId, userId),
+        eq(ordersTable.vendorId, vendorUser.id),
         eq(ordersTable.status, "tamamlandi"),
       ))
       .limit(1);
@@ -84,7 +122,7 @@ router.post("/reviews", requireAuth, async (req: AuthRequest, res) => {
     const [existing] = await db
       .select({ id: reviewsTable.id })
       .from(reviewsTable)
-      .where(and(eq(reviewsTable.vendorName, vendorName), eq(reviewsTable.customerId, userId)))
+      .where(and(eq(reviewsTable.vendorId, vendorUser.id), eq(reviewsTable.customerId, userId)))
       .limit(1);
 
     if (existing) {
@@ -92,36 +130,30 @@ router.post("/reviews", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
+    /* Reviews require admin moderation before appearing publicly */
     const [review] = await db
       .insert(reviewsTable)
       .values({
-        vendorName,
+        vendorId: vendorUser.id,
+        vendorName: vendorUser.name,
         customerId: userId,
         customerName: name,
         orderId,
         puan,
         yorum,
         hasPhoto,
-        isApproved: true,
+        isApproved: false,
       })
       .returning();
 
     /* Notify vendor */
-    const [vendorUser] = await db
-      .select({ id: usersTable.id })
-      .from(usersTable)
-      .where(and(eq(usersTable.name, vendorName), eq(usersTable.role, "firma")))
-      .limit(1);
-
-    if (vendorUser) {
-      await db.insert(notificationsTable).values({
-        userId: vendorUser.id,
-        type: "review",
-        title: "Yeni Yorum",
-        body: `${name} ${puan} yıldız puan verdi.`,
-        link: "/firma-dashboard",
-      });
-    }
+    await db.insert(notificationsTable).values({
+      userId: vendorUser.id,
+      type: "review",
+      title: "Yeni Yorum",
+      body: `${name} ${puan} yıldız puan verdi.`,
+      link: "/firma-dashboard",
+    });
 
     res.status(201).json({ review });
   } catch {

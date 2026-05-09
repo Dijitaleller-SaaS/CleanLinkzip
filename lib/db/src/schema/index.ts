@@ -52,6 +52,8 @@ export type VendorProfile = typeof vendorProfilesTable.$inferSelect;
 /* ── Orders ── */
 export const ordersTable = pgTable("orders", {
   id:                    text("id").primaryKey(),
+  customerId:            integer("customer_id").references(() => usersTable.id, { onDelete: "set null" }),
+  vendorId:              integer("vendor_id").references(() => usersTable.id, { onDelete: "set null" }),
   customerName:          varchar("customer_name", { length: 255 }).notNull(),
   customerPhone:         varchar("customer_phone", { length: 30 }).default("").notNull(),
   vendorName:            varchar("vendor_name", { length: 255 }).notNull(),
@@ -132,6 +134,7 @@ export type PilotApplication = typeof pilotApplicationsTable.$inferSelect;
 /* ── Reviews ── */
 export const reviewsTable = pgTable("reviews", {
   id:           serial("id").primaryKey(),
+  vendorId:     integer("vendor_id").references(() => usersTable.id, { onDelete: "set null" }),
   vendorName:   varchar("vendor_name", { length: 255 }).notNull(),
   customerId:   integer("customer_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   customerName: varchar("customer_name", { length: 255 }).notNull(),

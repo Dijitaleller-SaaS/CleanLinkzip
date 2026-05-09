@@ -65,7 +65,7 @@ export default function FirmaProfil() {
 
   useEffect(() => {
     if (!vendor) return;
-    apiGetReviews(vendor.name)
+    apiGetReviews(vendor.userId)
       .then(({ reviews, stats }) => { setReviews(reviews); setStats(stats); })
       .catch(() => {});
   }, [vendor]);

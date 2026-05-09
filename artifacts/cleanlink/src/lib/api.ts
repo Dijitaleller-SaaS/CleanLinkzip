@@ -362,7 +362,7 @@ export async function apiAdminDeleteBayi(id: number): Promise<void> {
 }
 
 export async function apiCreateOrder(order: {
-  vendorName: string;
+  vendorId?: number;
   service: string;
   total: number;
   customerPhone?: string;
@@ -496,9 +496,9 @@ export interface ApiReview {
 
 export interface ReviewStats { count: number; average: number; }
 
-export async function apiGetReviews(vendor: string): Promise<{ reviews: ApiReview[]; stats: ReviewStats }> {
+export async function apiGetReviews(vendorId: number): Promise<{ reviews: ApiReview[]; stats: ReviewStats }> {
   return request<{ reviews: ApiReview[]; stats: ReviewStats }>(
-    "GET", `/reviews?vendor=${encodeURIComponent(vendor)}`
+    "GET", `/reviews?vendorId=${vendorId}`
   );
 }
 
@@ -511,7 +511,7 @@ export async function apiGetReviewStats(vendors: string[]): Promise<Record<strin
 }
 
 export async function apiSubmitReview(payload: {
-  vendorName: string; puan: number; yorum: string; hasPhoto?: boolean; orderId?: string;
+  vendorId: number; puan: number; yorum: string; hasPhoto?: boolean; orderId?: string;
 }): Promise<ApiReview> {
   const data = await request<{ review: ApiReview }>("POST", "/reviews", payload, true);
   return data.review;

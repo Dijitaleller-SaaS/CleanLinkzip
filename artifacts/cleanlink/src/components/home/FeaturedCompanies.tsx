@@ -245,6 +245,7 @@ function buildFirmaData(v: VendorEntry, idx: number): FirmaData {
   const scopes = { ...defaultScopes, ...(v.serviceScopes ?? {}) };
   return {
     id: 100 + idx,
+    userId: v.userId,
     name: v.name,
     rating: 4.5,
     reviews: 0,

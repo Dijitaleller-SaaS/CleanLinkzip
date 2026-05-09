@@ -32,7 +32,7 @@ export interface BookingServiceItem {
 }
 
 interface Props {
-  firma: { name: string; services: BookingServiceItem[] } | null;
+  firma: { name: string; userId?: number; services: BookingServiceItem[] } | null;
   preselectedService?: string;
   preselectedQty?: number;
   onClose: () => void;
@@ -313,6 +313,7 @@ export function BookingModal({ firma, preselectedService, preselectedQty, onClos
       musteri: user.name,
       musteriEmail: user.email,
       firmaName: firma!.name,
+      vendorUserId: firma!.userId,
       hizmet: hizmetSummary,
       toplam: total,
       durum: "beklemede",
