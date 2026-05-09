@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useSEO } from "@/hooks/useSEO";
 import { motion } from "framer-motion";
-import { Search, MapPin, Star, ArrowLeft, Globe, SprayCan, Home, Sofa, Layers, EyeOff, CheckCircle2, CalendarClock, Loader2 } from "lucide-react";
+import { Search, MapPin, Star, ArrowLeft, Globe, SprayCan, Home, Sofa, EyeOff, CheckCircle2, CalendarClock, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { FirmaProfilModal, FirmaData } from "@/components/firma/FirmaProfilModal";
@@ -10,84 +10,7 @@ import { toSlug } from "@/lib/analytics";
 import { apiAdminSetVisibilityByName } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-/* Static display enrichment for known seed vendors */
-const STATIC_FIRM_DATA: Record<string, Partial<FirmaData>> = {
-  "Yıldız Temizlik": {
-    id: 1, rating: 4.9, reviews: 342,
-    location: "Kadıköy, İstanbul", tags: ["Ev", "Ofis", "İnşaat Sonrası"],
-    verified: true, isPremium: true, badge: "one_cikan", image: "company-1.png",
-    phone: "0532 111 22 33",
-    bio: "2015 yılından bu yana İstanbul'un Anadolu yakasında profesyonel ev, ofis ve inşaat sonrası temizlik hizmeti sunuyoruz.",
-    founded: "2015", completedJobs: 1200, certs: [],
-    services: [{ name: "2+1 Ev Temizliği", price: "1.500", unit: "/ ziyaret", scope: "" }],
-    galleryColors: [{ gradient: "from-teal-400 to-primary", icon: Home, label: "Ev Temizliği" }],
-    reviewList: [],
-  },
-  "Usta Yıkama": {
-    id: 2, rating: 4.8, reviews: 128,
-    location: "Beşiktaş, İstanbul", tags: ["Koltuk", "Halı", "Araç İçi"],
-    verified: true, isPremium: true, badge: "acil", image: "company-2.png",
-    phone: "0533 444 55 66",
-    bio: "Buharlı yıkama teknolojisiyle koltuk, halı ve araç içi temizliğinde İstanbul'un lider firmasıyız.",
-    founded: "2018", completedJobs: 650, certs: [],
-    services: [{ name: "L Koltuk Yıkama", price: "600", unit: "/ set", scope: "" }],
-    galleryColors: [{ gradient: "from-sky-400 to-blue-500", icon: Sofa, label: "Koltuk Yıkama" }],
-    reviewList: [],
-  },
-  "Parlak Evler": {
-    id: 3, rating: 4.7, reviews: 89,
-    location: "Şişli, İstanbul", tags: ["Ev", "Ofis", "Aylık Abonelik"],
-    verified: false, isPremium: true, badge: "en_iyi_fiyat", image: "company-3.png",
-    phone: "0544 777 88 99",
-    bio: "Bütçe dostu fiyatlarla standart altına düşmeden temizlik yapan genç ve dinamik ekibiz.",
-    founded: "2021", completedJobs: 280, certs: [],
-    services: [{ name: "2+1 Ev Temizliği", price: "1.100", unit: "/ ziyaret", scope: "" }],
-    galleryColors: [{ gradient: "from-green-400 to-emerald-500", icon: Home, label: "Ev Temizliği" }],
-    reviewList: [],
-  },
-  "Kristal Temizlik": {
-    id: 4, rating: 4.8, reviews: 215,
-    location: "Ataşehir, İstanbul", tags: ["Halı", "Yorgan", "Yatak Yıkama"],
-    verified: true, isPremium: true, badge: "one_cikan", image: "company-4.png",
-    phone: "0541 234 56 78",
-    bio: "Halı, yatak ve yorgan yıkamada Anadolu yakasının güvenilir ismi.",
-    founded: "2017", completedJobs: 890, certs: [],
-    services: [
-      { name: "Halı Yıkama", price: "120", unit: "/ m²", scope: "" },
-      { name: "Yatak Yıkama", price: "750", unit: "/ adet", scope: "" },
-    ],
-    galleryColors: [{ gradient: "from-sky-400 to-cyan-500", icon: Globe, label: "Halı Yıkama" }],
-    reviewList: [],
-  },
-  "Anadolu Yıkama": {
-    id: 5, rating: 4.6, reviews: 163,
-    location: "Pendik, İstanbul", tags: ["Koltuk", "Araç İçi", "Sandalye"],
-    verified: true, isPremium: true, badge: "acil", image: "company-5.png",
-    phone: "0542 876 54 32",
-    bio: "Koltuk, araç koltuğu ve cafe-restoran sandalye yıkamada hızlı ve güvenilir hizmet.",
-    founded: "2019", completedJobs: 540, certs: [],
-    services: [
-      { name: "L Koltuk Takımı", price: "600", unit: "/ set", scope: "" },
-      { name: "Araç Koltuk", price: "400", unit: "/ araç", scope: "" },
-    ],
-    galleryColors: [{ gradient: "from-amber-400 to-orange-500", icon: Sofa, label: "Koltuk Yıkama" }],
-    reviewList: [],
-  },
-  "Pırıl Temizlik": {
-    id: 6, rating: 4.7, reviews: 97,
-    location: "Maltepe, İstanbul", tags: ["İpek Halı", "Bambu", "Yün Halı"],
-    verified: true, isPremium: true, badge: "en_iyi_fiyat", image: "company-6.png",
-    phone: "0543 654 32 10",
-    bio: "Değerli halılarınız için özel bakım uzmanıyız. İpek, bambu, yün ve kilim halı uzmanı.",
-    founded: "2016", completedJobs: 620, certs: [],
-    services: [
-      { name: "İpek Halı", price: "300", unit: "/ m²", scope: "" },
-      { name: "Bambu Halı", price: "300", unit: "/ m²", scope: "" },
-    ],
-    galleryColors: [{ gradient: "from-violet-400 to-purple-500", icon: Layers, label: "İpek & Bambu" }],
-    reviewList: [],
-  },
-};
+const STATIC_FIRM_DATA: Record<string, Partial<FirmaData>> = {};
 
 function buildCard(vendor: VendorEntry, idx: number): FirmaData {
   const staticData = STATIC_FIRM_DATA[vendor.name];
