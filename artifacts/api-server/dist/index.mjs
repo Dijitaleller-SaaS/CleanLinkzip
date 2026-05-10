@@ -83648,8 +83648,25 @@ if (process.env.NODE_ENV === "production") {
     "../../cleanlink/dist/public"
   );
   if (existsSync(frontendDist)) {
-    app.use(import_express16.default.static(frontendDist));
+    app.get("/sw.js", (_req, res) => {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+      res.setHeader("Content-Type", "application/javascript");
+      res.sendFile(path.join(frontendDist, "sw.js"));
+    });
+    app.get("/manifest.webmanifest", (_req, res) => {
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.sendFile(path.join(frontendDist, "manifest.webmanifest"));
+    });
+    app.use(
+      "/assets",
+      import_express16.default.static(path.join(frontendDist, "assets"), {
+        maxAge: "1y",
+        immutable: true
+      })
+    );
+    app.use(import_express16.default.static(frontendDist, { maxAge: "1h" }));
     app.get(/.*/, (_req, res) => {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       res.sendFile(path.join(frontendDist, "index.html"));
     });
     logger.info({ frontendDist }, "Serving frontend static files");

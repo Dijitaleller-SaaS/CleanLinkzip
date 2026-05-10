@@ -46,10 +46,39 @@ if (process.env.NODE_ENV === "production") {
   );
 
   if (existsSync(frontendDist)) {
-    app.use(express.static(frontendDist));
+    /* Service worker must never be cached — browsers and CDNs (Cloudflare)
+       must always fetch the latest version so new deployments take effect. */
+    app.get("/sw.js", (_req, res) => {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+      res.setHeader("Content-Type", "application/javascript");
+      res.sendFile(path.join(frontendDist, "sw.js"));
+    });
+
+    /* manifest and icons: short cache */
+    app.get("/manifest.webmanifest", (_req, res) => {
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.sendFile(path.join(frontendDist, "manifest.webmanifest"));
+    });
+
+    /* Hashed JS/CSS assets: long-lived immutable cache */
+    app.use(
+      "/assets",
+      express.static(path.join(frontendDist, "assets"), {
+        maxAge: "1y",
+        immutable: true,
+      }),
+    );
+
+    /* Everything else (images, fonts, etc.) — short cache */
+    app.use(express.static(frontendDist, { maxAge: "1h" }));
+
+    /* SPA fallback: always return index.html without caching so
+       Cloudflare never serves a stale shell to navigating clients. */
     app.get(/.*/, (_req, res) => {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       res.sendFile(path.join(frontendDist, "index.html"));
     });
+
     logger.info({ frontendDist }, "Serving frontend static files");
   } else {
     logger.warn({ frontendDist }, "Frontend dist not found, skipping static serving");
