@@ -3,16 +3,69 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { FirmaBasvuruModal } from "@/components/basvuru/FirmaBasvuruModal";
 import {
   Rocket, MapPin, ShieldCheck, Megaphone, Users, Star, Lock, Info,
-  TrendingUp, BadgeCheck, Fingerprint, Crown,
+  TrendingUp, BadgeCheck, Fingerprint, Crown, Check, ArrowRight,
+  Building2, ChevronRight, Zap, LayoutDashboard, Award,
 } from "lucide-react";
 import { apiGetPageContent } from "@/lib/api";
+import { useApp } from "@/context/AppContext";
+import { useLocation } from "wouter";
 
 const DEFAULT_KONTENJAN =
   "Şişli bölgesi pilot programı 24 firma ile sınırlıdır. Kayıtlar açık olmaya devam etmektedir; kontenjan tamamlandığında bilgilendirme yapılacaktır.";
 
+const FUNNEL_STEPS = [
+  {
+    step: "01",
+    icon: Users,
+    title: "Üye Ol",
+    desc: "Standart kullanıcı olarak 2 dakikada kaydol. E-posta veya Google ile anında başla.",
+    color: "from-teal-50 to-white",
+    accent: "text-teal-600",
+    border: "border-teal-100",
+    badge: "bg-teal-100 text-teal-700",
+    active: true,
+  },
+  {
+    step: "02",
+    icon: Zap,
+    title: "CRM Paketini Satın Al",
+    desc: "999 TL / ay ile tüm müşteri yönetim araçlarına ve firma paneline anında eriş.",
+    color: "from-primary/5 to-white",
+    accent: "text-primary",
+    border: "border-primary/20",
+    badge: "bg-primary/10 text-primary",
+    active: true,
+  },
+  {
+    step: "03",
+    icon: Award,
+    title: "Vitrin & Pilot Başvurusu",
+    desc: "Firma panelinizden vitrinde yer alın, bölge koruması kazanın ve Pilot programa dahil olun.",
+    color: "from-amber-50 to-white",
+    accent: "text-amber-600",
+    border: "border-amber-100",
+    badge: "bg-amber-100 text-amber-700",
+    active: false,
+  },
+];
+
+const CRM_FEATURES = [
+  "Tam özellikli Firma Paneli erişimi",
+  "Sınırsız müşteri takibi ve CRM",
+  "Randevu ve sipariş yönetimi",
+  "Gerçek müşteri yorum sistemi",
+  "Fiyat & hizmet listesi yönetimi",
+  "Vitrin başvurusu hakkı (ek ücret ile)",
+  "Bölge koruması başvurusu",
+  "Pilot program önceliği",
+  "7/24 destek hattı",
+];
+
 export default function PilotSartlari() {
   const [basvuruOpen, setBasvuruOpen] = useState(false);
   const [kontenjan, setKontenjan] = useState(DEFAULT_KONTENJAN);
+  const { user, setShowAuthModal, setAuthMode } = useApp();
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     apiGetPageContent("pilot")
@@ -20,28 +73,162 @@ export default function PilotSartlari() {
       .catch(() => { /* keep default */ });
   }, []);
 
+  const handleCrmCta = () => {
+    if (!user) {
+      setAuthMode("musteri");
+      setShowAuthModal(true);
+    } else if (user.type === "firma") {
+      navigate("/firma-dashboard");
+    } else {
+      setBasvuruOpen(true);
+    }
+  };
+
   return (
-    <PageLayout breadcrumbs={[{ label: "Pilot Şartları" }]}>
+    <PageLayout breadcrumbs={[{ label: "İş Ortaklığı" }, { label: "Firma Kayıt & CRM Paketi" }]}>
       <FirmaBasvuruModal open={basvuruOpen} onClose={() => setBasvuruOpen(false)} />
 
       <div className="max-w-5xl mx-auto">
 
-        {/* Hero */}
+        {/* ── Page Hero ── */}
         <div className="flex items-start gap-5 mb-10">
           <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <Rocket className="w-7 h-7 text-primary" />
+            <Building2 className="w-7 h-7 text-primary" />
           </div>
           <div>
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full mb-3">
+              <Zap className="w-3 h-3" /> İş Ortaklığı
+            </div>
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground leading-tight">
-              Pilot Şartları ve<br />
-              <span className="text-primary">Sponsor Avantajları</span>
+              Temizlik İşletmenizi<br />
+              <span className="text-primary">Dijitalleştirin</span>
             </h1>
-            <p className="text-muted-foreground mt-2 text-sm">Son güncelleme: 30 Nisan 2026</p>
+            <p className="text-muted-foreground mt-2 text-base max-w-lg">
+              999 TL / ay ile tüm müşteri yönetim araçlarına sahip olun, vitrine çıkın ve bölgenizde rakiplerden önce yer alın.
+            </p>
           </div>
         </div>
 
-        {/* Kontenjan uyarısı */}
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-10">
+        {/* ── Funnel Steps ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
+          {FUNNEL_STEPS.map((s, i) => {
+            const Icon = s.icon;
+            return (
+              <div
+                key={i}
+                className={`relative bg-gradient-to-br ${s.color} border ${s.border} rounded-3xl p-6 overflow-hidden`}
+              >
+                <div className="absolute top-4 right-4 text-5xl font-black text-black/[0.04] leading-none select-none">
+                  {s.step}
+                </div>
+                <div className={`w-10 h-10 rounded-2xl ${s.badge} flex items-center justify-center mb-4`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <h3 className={`font-display font-bold text-base text-foreground mb-1.5`}>{s.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
+                {i < FUNNEL_STEPS.length - 1 && (
+                  <div className="hidden sm:flex absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-5 h-5 rounded-full bg-white border border-border items-center justify-center shadow-sm">
+                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Pricing Card ── */}
+        <div className="relative bg-foreground rounded-3xl overflow-hidden mb-14">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-primary/5 to-transparent pointer-events-none" />
+          <div className="absolute -top-20 -right-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-amber-400/5 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-0">
+
+            {/* Left — Price */}
+            <div className="p-8 md:p-10 border-b md:border-b-0 md:border-r border-white/10">
+              <div className="inline-flex items-center gap-2 bg-primary/30 text-primary-foreground text-xs font-bold px-3 py-1 rounded-full mb-6">
+                <Rocket className="w-3 h-3" /> Kapsamlı CRM Paketi
+              </div>
+
+              <div className="flex items-end gap-2 mb-2">
+                <span className="text-5xl font-black text-white tracking-tight">999</span>
+                <div className="pb-1.5">
+                  <span className="text-white/60 text-lg font-medium">TL</span>
+                  <span className="text-white/40 text-sm"> / ay</span>
+                </div>
+              </div>
+              <p className="text-white/50 text-xs mb-8">KDV dahil · Her ay yenilenebilir · İptal garantisi</p>
+
+              <button
+                onClick={handleCrmCta}
+                className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold text-base h-14 px-8 rounded-2xl shadow-xl shadow-primary/30 group transition-colors mb-3"
+              >
+                {user?.type === "firma" ? (
+                  <>
+                    <LayoutDashboard className="w-5 h-5" />
+                    Firma Paneline Git
+                  </>
+                ) : user ? (
+                  <>
+                    <Zap className="w-5 h-5" />
+                    Paketi Satın Al
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </>
+                ) : (
+                  <>
+                    <Users className="w-5 h-5" />
+                    Üye Ol &amp; Başla
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+
+              {!user && (
+                <p className="text-white/40 text-xs text-center">
+                  Zaten hesabınız var mı?{" "}
+                  <button
+                    onClick={() => { setAuthMode("musteri"); setShowAuthModal(true); }}
+                    className="text-primary hover:underline"
+                  >
+                    Giriş yapın
+                  </button>
+                </p>
+              )}
+              {user?.type === "musteri" && (
+                <p className="text-white/40 text-xs text-center">
+                  <span className="text-white/60 font-medium">{user.name}</span> olarak giriş yaptınız
+                </p>
+              )}
+            </div>
+
+            {/* Right — Features */}
+            <div className="p-8 md:p-10">
+              <p className="text-white/50 text-xs font-bold tracking-widest uppercase mb-5">Pakete Dahil</p>
+              <ul className="space-y-3">
+                {CRM_FEATURES.map((f, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 text-primary" />
+                    </div>
+                    <span className="text-white/80 text-sm leading-relaxed">{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-6 pt-6 border-t border-white/10 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-amber-400/20 flex items-center justify-center">
+                  <Crown className="w-4 h-4 text-amber-400" />
+                </div>
+                <p className="text-xs text-white/50 leading-relaxed">
+                  Bugün katılanlara <span className="text-amber-300 font-semibold">ömür boyu fiyat kilidi</span> — ilerleyen dönem zamlarından etkilenmezsiniz.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Kontenjan uyarısı ── */}
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-12">
           <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-bold text-amber-800 text-sm">Sınırlı Kontenjan</p>
@@ -49,10 +236,16 @@ export default function PilotSartlari() {
           </div>
         </div>
 
+        {/* ── Section Title ── */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-display font-bold text-foreground">Paket Avantajları</h2>
+          <p className="text-muted-foreground text-sm mt-1">CRM paketinizi aktifleştirdiğinizde aşağıdaki tüm özelliklere erişirsiniz.</p>
+        </div>
+
         {/* ── Bento Grid ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-14">
 
-          {/* 1 — Bölge & Semt Koruması  — 4/6 cols */}
+          {/* 1 — Bölge & Semt Koruması — 4/6 cols */}
           <div className="lg:col-span-4 relative bg-white border border-border rounded-3xl p-7 shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
             <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-white to-white pointer-events-none" />
             <div className="relative">
@@ -62,13 +255,13 @@ export default function PilotSartlari() {
                 </div>
                 <span className="text-[11px] font-bold tracking-widest text-violet-500 uppercase">Rekabet Koruması</span>
               </div>
-              <h2 className="text-xl font-display font-bold text-foreground mb-3 leading-snug">
+              <h3 className="text-xl font-display font-bold text-foreground mb-3 leading-snug">
                 Bölge & Semt Koruması
-              </h2>
+              </h3>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
                 Her bölge ve semtte yalnızca belirli sayıda işletme platforma dahil edilir. Bu kota sistemi sayesinde
                 firmalar kendi bölgelerinde gereksiz rekabete maruz kalmaz; aksine bölgenin doğal talebi
-                sınırlı sayıda firma arasında paylaşılır. Bölgenizde yer açıkken başvurmanız kritik öneme sahiptir.
+                sınırlı sayıda firma arasında paylaşılır.
               </p>
               <div className="mt-5 flex items-center gap-5">
                 {[["2-3", "Hizmet başına max. firma"], ["100%", "Bölge talebi size"], ["Sınırlı", "Kontenjan garantili"]].map(([val, lbl]) => (
@@ -88,12 +281,11 @@ export default function PilotSartlari() {
               <div className="w-11 h-11 rounded-2xl bg-teal-100 flex items-center justify-center mb-4">
                 <BadgeCheck className="w-5 h-5 text-teal-600" />
               </div>
-              <h2 className="text-lg font-display font-bold text-foreground mb-3 leading-snug">
-                Sponsor Firma Filtresi
-              </h2>
+              <h3 className="text-lg font-display font-bold text-foreground mb-3 leading-snug">
+                Onaylı Firma Güvencesi
+              </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Sisteme yalnızca denetimden geçmiş ve CleanLink ekibi tarafından onaylanmış firmalar dahil edilebilir.
-                Her başvuru kimlik doğrulama, referans kontrolü ve kapasite değerlendirmesinden geçer.
+                Sisteme yalnızca denetimden geçmiş firmalar dahil edilir. Her başvuru kimlik doğrulama, referans ve kapasite değerlendirmesinden geçer.
               </p>
               <div className="mt-5 inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-teal-700 text-xs font-semibold px-3 py-1.5 rounded-full">
                 <ShieldCheck className="w-3.5 h-3.5" />
@@ -109,12 +301,12 @@ export default function PilotSartlari() {
               <div className="w-11 h-11 rounded-2xl bg-orange-100 flex items-center justify-center mb-4">
                 <Megaphone className="w-5 h-5 text-orange-600" />
               </div>
-              <h2 className="text-lg font-display font-bold text-foreground mb-3 leading-snug">
+              <h3 className="text-lg font-display font-bold text-foreground mb-3 leading-snug">
                 %60 Reklam Gücü
-              </h2>
+              </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Ödemenizin <span className="font-semibold text-orange-700">%60'ı</span> doğrudan Google Ads yönetimine aktarılır.
-                Reklam yönetim ücreti ayrıca talep edilmez — ödenen bütçe reklama, müşteriye gider.
+                Reklam yönetim ücreti ayrıca talep edilmez.
               </p>
               <div className="mt-5">
                 <div className="w-full bg-orange-100 rounded-full h-2">
@@ -138,13 +330,12 @@ export default function PilotSartlari() {
                 </div>
                 <span className="text-[11px] font-bold tracking-widest text-blue-500 uppercase">Müşteri & Büyüme</span>
               </div>
-              <h2 className="text-xl font-display font-bold text-foreground mb-3 leading-snug">
+              <h3 className="text-xl font-display font-bold text-foreground mb-3 leading-snug">
                 Müşteri Mıknatısı & CRM
-              </h2>
+              </h3>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
                 Firmanız CleanLink ana sayfasında vitrine çıkar ve bölge aramasında üst sıralarda görünür.
-                Entegre CRM sistemi ile tüm müşteri ilişkilerinizi profesyonelce takip eder,
-                gerçek müşteri yorumlarıyla güvenilirliğinizi pekiştirirsiniz.
+                Entegre CRM sistemi ile tüm müşteri ilişkilerinizi profesyonelce takip edin.
               </p>
               <div className="mt-5 grid grid-cols-3 gap-3">
                 {[
@@ -172,13 +363,13 @@ export default function PilotSartlari() {
                 </div>
                 <span className="text-[11px] font-bold tracking-widest text-amber-400 uppercase">Ömür Boyu</span>
               </div>
-              <h2 className="text-xl font-display font-bold text-white mb-3 leading-snug">
+              <h3 className="text-xl font-display font-bold text-white mb-3 leading-snug">
                 Geleceğin Ayrıcalıkları
-              </h2>
+              </h3>
               <p className="text-sm text-white/70 leading-relaxed">
-                Bugün Sponsor Firma olarak katılanlar, ilerleyen dönemlerde uygulanacak reklam yönetim ücretinden
+                Bugün katılanlar, ilerleyen dönemlerde uygulanacak reklam yönetim ücretinden
                 <span className="text-amber-300 font-semibold"> muaf tutulacak</span> ve mevcut paket fiyatlarını
-                ömür boyu koruma hakkı kazanacaktır. Erken gelen, kalıcı kazanır.
+                ömür boyu koruma hakkı kazanacaktır.
               </p>
               <ul className="mt-5 space-y-2">
                 {["Yönetim ücreti yok — sonsuza dek", "Fiyat kilidi güvencesi", "Öncelikli destek hattı"].map(item => (
@@ -201,12 +392,11 @@ export default function PilotSartlari() {
                 </div>
                 <span className="text-[11px] font-bold tracking-widest text-slate-500 uppercase">Şeffaf & Güvenli</span>
               </div>
-              <h2 className="text-xl font-display font-bold text-foreground mb-3 leading-snug">
+              <h3 className="text-xl font-display font-bold text-foreground mb-3 leading-snug">
                 Sistem Güvenliği
-              </h2>
+              </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 3 aylık pilot süreci boyunca tüm bütçe aktarımları <span className="font-semibold text-slate-700">IP ve zaman damgalı dijital onay sistemiyle</span> kayıt altına alınır.
-                Her işlem izlenebilir, şeffaf ve hukuki geçerliliğe sahiptir.
               </p>
               <div className="mt-5 grid grid-cols-2 gap-3">
                 {[
@@ -224,25 +414,24 @@ export default function PilotSartlari() {
           </div>
 
         </div>
-        {/* ── /Bento Grid ── */}
 
-        {/* CTA */}
+        {/* ── Final CTA ── */}
         <div className="bg-foreground text-white rounded-3xl p-8 md:p-10 mb-16 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 justify-between">
             <div>
-              <h2 className="text-xl font-display font-bold mb-2">Başvurmak İster misiniz?</h2>
+              <h2 className="text-xl font-display font-bold mb-2">Hemen Başvurun</h2>
               <p className="text-white/70 text-sm max-w-md">
-                Pilot programına katılmak için firma hesabı oluşturun ve sponsorluk paketinizi seçin.
+                Üye olun, CRM paketinizi aktifleştirin ve vitrin ile pilot başvurusunu Firma Panelinizden yapın.
                 Kontenjanlar sınırlıdır — erken kayıt öncelik hakkı kazandırır.
               </p>
             </div>
             <button
-              onClick={() => setBasvuruOpen(true)}
+              onClick={handleCrmCta}
               className="flex-shrink-0 inline-flex items-center gap-2 bg-primary text-white font-bold px-6 py-3 rounded-2xl hover:bg-primary/90 transition-colors shadow-lg shadow-primary/30"
             >
               <Rocket className="w-4 h-4" />
-              Hemen Başvur
+              {user?.type === "firma" ? "Firma Paneline Git" : user ? "Paketi Satın Al" : "Üye Ol & Başla"}
             </button>
           </div>
         </div>

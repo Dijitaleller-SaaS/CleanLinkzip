@@ -7,7 +7,7 @@ import { useApp, ADMIN_EMAIL } from "@/context/AppContext";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 function scrollToSection(id: string) {
-  const HEADER_OFFSET = 104; // AnnouncementBar (36px) + Header (~68px)
+  const HEADER_OFFSET = 104;
   const el = document.getElementById(id);
   if (el) {
     const top = el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET;
@@ -66,18 +66,12 @@ export function Header() {
             >
               Nasıl Çalışır?
             </button>
-            <button
-              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-            >
-              Kurumsal
-            </button>
           </nav>
 
           {/* Actions */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                {/* Siparişlerim — only for musteri */}
                 {(user.role === "admin" || user.email === ADMIN_EMAIL || user.email === "serkcel@gmail.com") && (
                   <Link
                     href="/admin-dashboard"
@@ -178,9 +172,6 @@ export function Header() {
               >
                 Nasıl Çalışır?
               </button>
-              <button className="px-4 py-3 text-base font-medium rounded-lg hover:bg-secondary text-left text-foreground">
-                Kurumsal
-              </button>
               <div className="h-px bg-border my-2" />
               {user ? (
                 <>
@@ -233,9 +224,6 @@ export function Header() {
                   </Button>
                   <Button className="w-full justify-center bg-primary" onClick={() => openAuth("musteri")}>
                     Üye Ol
-                  </Button>
-                  <Button variant="ghost" className="w-full justify-center text-primary border border-primary/20" onClick={() => openAuth("firma")}>
-                    <Building2 className="w-4 h-4 mr-2" /> Firma Girişi
                   </Button>
                 </>
               )}
