@@ -1,5 +1,5 @@
 /* Minimal service worker — network-first for navigation, cache static assets */
-const CACHE_NAME = "cleanlink-v3";
+const CACHE_NAME = "cleanlink-v4";
 const STATIC_ASSETS = [
   "/",
   "/favicon.svg",
