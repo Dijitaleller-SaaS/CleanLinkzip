@@ -12,6 +12,38 @@ import { getFirmaSlugFromUrl, toSlug } from "@/lib/analytics";
 
 const COMPANIES: FirmaData[] = [
   {
+    id: 1,
+    name: "Gün Temizlik Hizmetleri",
+    rating: 4.8,
+    reviews: 0,
+    location: "İstanbul / Şişli",
+    tags: ["Koltuk Yıkama", "Halı Yıkama", "Ev Temizliği"],
+    verified: true,
+    isPremium: true,
+    badge: "pilot",
+    image: "",
+    phone: "",
+    bio: "Koltuk, halı ve ev temizliğinde profesyonel çözümler. Buharlı yıkama teknolojisi ve çevre dostu ürünlerle temiz bir yaşam alanı.",
+    founded: "2023",
+    completedJobs: 0,
+    hasPati: false,
+    isNatureFriendly: false,
+    certs: [
+      { label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" },
+    ],
+    services: [
+      { name: "L Koltuk Yıkama", price: "600", unit: "/ set", scope: "Buharlı derin temizlik, leke ve koku giderme." },
+      { name: "Halı Yıkama", price: "35", unit: "/ m²", scope: "Endüstriyel yıkama, organik deterjan, kuru teslim." },
+      { name: "2+1 Ev Temizliği", price: "1.400", unit: "/ ziyaret", scope: "Tüm odalar, mutfak, banyo dezenfeksiyonu dahil." },
+    ],
+    galleryColors: [
+      { gradient: "from-emerald-400 to-teal-500", icon: Sofa, label: "Koltuk Yıkama" },
+      { gradient: "from-teal-400 to-primary", icon: Layers, label: "Halı Yıkama" },
+      { gradient: "from-cyan-400 to-sky-500", icon: Home, label: "Ev Temizliği" },
+    ],
+    reviewList: [],
+  },
+  {
     id: 2,
     name: "Cleanlink Temizlik",
     rating: 4.9,
