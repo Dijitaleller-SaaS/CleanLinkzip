@@ -425,16 +425,16 @@ function FinansalTab() {
   if (error || !fin) return <ErrorBox msg={error ?? "Yüklenemedi"} onRetry={load} />;
 
   const stats = [
-    { label: "Aylık Toplam Gelir",   value: `${fin.totalRevenue.toLocaleString("tr-TR")} TL`, icon: TrendingUp, color: "from-primary to-teal-600" },
-    { label: "Standart Üye",         value: String(fin.standart),  icon: Package, color: "from-teal-400 to-emerald-500" },
-    { label: "Elite Üye",            value: String(fin.elite),     icon: Crown,   color: "from-amber-400 to-orange-500" },
-    { label: "Reklam Havuzu (%60)",  value: `${fin.reklamHavuzu.toLocaleString("tr-TR")} TL`, icon: Sparkles, color: "from-violet-500 to-purple-600" },
+    { label: "Aylık Toplam Gelir",         value: `${fin.totalRevenue.toLocaleString("tr-TR")} TL`, icon: TrendingUp, color: "from-primary to-teal-600" },
+    { label: "CRM Üye (999 TL/ay)",        value: String(fin.standart),  icon: Package, color: "from-teal-400 to-emerald-500" },
+    { label: "Elite Sponsor (5.000 TL/ay)",value: String(fin.elite),     icon: Crown,   color: "from-amber-400 to-orange-500" },
+    { label: "Reklam Havuzu (Elite %60)",  value: `${fin.reklamHavuzu.toLocaleString("tr-TR")} TL`, icon: Sparkles, color: "from-violet-500 to-purple-600" },
   ];
 
   const chartData = [
-    { name: "Standart",      gelir: fin.standartRevenue, color: "#14b8a6" },
-    { name: "Elite",         gelir: fin.eliteRevenue,    color: "#f59e0b" },
-    { name: "Reklam (%60)",  gelir: fin.reklamHavuzu,    color: "#8b5cf6" },
+    { name: "CRM (999 TL)",      gelir: fin.standartRevenue,                      color: "#14b8a6" },
+    { name: "Elite (5.000 TL)",  gelir: fin.eliteRevenue - fin.reklamHavuzu,       color: "#f59e0b" },
+    { name: "Reklam Havuzu",     gelir: fin.reklamHavuzu,                          color: "#8b5cf6" },
   ];
 
   return (
@@ -475,23 +475,31 @@ function FinansalTab() {
         <div className="bg-teal-50 border border-teal-200 rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-3">
             <Package className="w-5 h-5 text-teal-700" />
-            <h3 className="font-semibold text-teal-900">Standart Paket</h3>
+            <h3 className="font-semibold text-teal-900">CRM Paketi</h3>
           </div>
           <p className="text-3xl font-black text-teal-700">999 <span className="text-base font-semibold">TL/ay</span></p>
           <p className="text-xs text-teal-600 mt-1">{fin.standart} aktif · {fin.standartRevenue.toLocaleString("tr-TR")} TL/ay</p>
+          <p className="text-xs text-teal-700 mt-2 font-medium bg-teal-100 rounded-lg px-2 py-1 inline-block">
+            ✓ Reklam kesintisi yok — 999 TL CleanLink'e kalır
+          </p>
           {fin.pending > 0 && <p className="text-xs text-amber-600 mt-2 font-medium">{fin.pending} onay bekleyen</p>}
           {fin.expired > 0 && <p className="text-xs text-red-500 mt-1 font-medium">{fin.expired} süresi dolmuş</p>}
         </div>
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-3">
             <Crown className="w-5 h-5 text-amber-600" />
-            <h3 className="font-semibold text-amber-900">Elite (VIP) Paket</h3>
+            <h3 className="font-semibold text-amber-900">Elite Sponsor Paketi</h3>
           </div>
           <p className="text-3xl font-black text-amber-600">5.000 <span className="text-base font-semibold">TL/ay</span></p>
           <p className="text-xs text-amber-700 mt-1">{fin.elite} aktif · {fin.eliteRevenue.toLocaleString("tr-TR")} TL/ay</p>
-          <p className="text-xs text-violet-600 mt-2 font-medium">
-            Reklam havuzu: {fin.reklamHavuzu.toLocaleString("tr-TR")} TL (%60)
-          </p>
+          <div className="mt-2 space-y-1">
+            <p className="text-xs text-violet-600 font-medium">
+              🎯 Reklam havuzu: {fin.reklamHavuzu.toLocaleString("tr-TR")} TL (%60 Google Ads)
+            </p>
+            <p className="text-xs text-amber-700 font-medium">
+              💼 Operasyon: {(fin.eliteRevenue - fin.reklamHavuzu).toLocaleString("tr-TR")} TL (%40 CleanLink)
+            </p>
+          </div>
         </div>
       </div>
     </motion.div>

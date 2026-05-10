@@ -133,14 +133,15 @@ router.get("/admin/financial", async (_req, res) => {
 
       if (p.isSponsor && !isExpired) elite++;
       else if (p.isSubscribed && !p.isSponsor && !isExpired) standart++;
-      else if (p.subscriptionPending && !p.isSubscribed) pending++;
+      else if (p.subscriptionPending) pending++;
       else if (isExpired) expired++;
     }
 
     const standartRevenue = standart * 999;
     const eliteRevenue = elite * 5000;
     const totalRevenue = standartRevenue + eliteRevenue;
-    const reklamHavuzu = Math.round(totalRevenue * 0.6);
+    /* Only Elite (5000 TL/ay) contributes to the ad pool — CRM (999 TL) has no deduction */
+    const reklamHavuzu = Math.round(eliteRevenue * 0.6);
 
     res.json({
       standart,
@@ -504,7 +505,8 @@ router.get("/admin/notifications", async (_req, res) => {
     const now = Date.now();
 
     const newFirms = profiles.filter(p => now - p.joinedAt.getTime() < DAY_MS);
-    const pendingFirms = profiles.filter(p => p.subscriptionPending && !p.isSubscribed);
+    /* Include upgrade requests too (already-subscribed firms upgrading to Elite) */
+    const pendingFirms = profiles.filter(p => p.subscriptionPending);
     const expiredFirms = profiles.filter(p => {
       if (!p.yayinaGirisTarihi) return false;
       const startMs = p.yayinaGirisTarihi instanceof Date ? p.yayinaGirisTarihi.getTime() : Number(p.yayinaGirisTarihi);

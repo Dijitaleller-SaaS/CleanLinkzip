@@ -82455,13 +82455,13 @@ router7.get("/admin/financial", async (_req, res) => {
       const isExpired = p.yayinaGirisTarihi ? now - (p.yayinaGirisTarihi instanceof Date ? p.yayinaGirisTarihi.getTime() : Number(p.yayinaGirisTarihi)) > SUB_DURATION_MS2 : false;
       if (p.isSponsor && !isExpired) elite++;
       else if (p.isSubscribed && !p.isSponsor && !isExpired) standart++;
-      else if (p.subscriptionPending && !p.isSubscribed) pending++;
+      else if (p.subscriptionPending) pending++;
       else if (isExpired) expired++;
     }
     const standartRevenue = standart * 999;
     const eliteRevenue = elite * 5e3;
     const totalRevenue = standartRevenue + eliteRevenue;
-    const reklamHavuzu = Math.round(totalRevenue * 0.6);
+    const reklamHavuzu = Math.round(eliteRevenue * 0.6);
     res.json({
       standart,
       elite,
@@ -82772,7 +82772,7 @@ router7.get("/admin/notifications", async (_req, res) => {
     const DAY_MS2 = 24 * 60 * 60 * 1e3;
     const now = Date.now();
     const newFirms = profiles.filter((p) => now - p.joinedAt.getTime() < DAY_MS2);
-    const pendingFirms = profiles.filter((p) => p.subscriptionPending && !p.isSubscribed);
+    const pendingFirms = profiles.filter((p) => p.subscriptionPending);
     const expiredFirms = profiles.filter((p) => {
       if (!p.yayinaGirisTarihi) return false;
       const startMs = p.yayinaGirisTarihi instanceof Date ? p.yayinaGirisTarihi.getTime() : Number(p.yayinaGirisTarihi);
