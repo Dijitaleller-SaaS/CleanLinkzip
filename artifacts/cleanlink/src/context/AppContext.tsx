@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { apiMe, apiLogout, apiGetMyVendorProfile, apiUpdateVendorProfile, apiAdminApproveByName, apiAdminExtendByName, apiGetOrders, apiCreateOrder, apiUpdateOrderStatus, apiUnlockOrder, apiGetVendors, type AdminVendor, type OrderApi } from "@/lib/api";
 
 export type UserType = "musteri" | "firma";
-export interface AppUser { type: UserType; name: string; email?: string; }
+export interface AppUser { type: UserType; name: string; email?: string; role?: string; }
 
 export const ADMIN_EMAIL = "serkan@dijitaleller.com";
 export const ADMIN_REMOVED_KEY = "cleanlink_admin_removed_sponsors";
@@ -313,9 +313,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     apiMe().then(apiUser => {
       if (apiUser) {
         const mapped: AppUser = {
-          type: apiUser.role as UserType,
+          type: apiUser.role === "admin" ? "musteri" : apiUser.role as UserType,
           name: apiUser.name,
           email: apiUser.email,
+          role: apiUser.role,
         };
         setUserState(mapped);
         localStorage.setItem(USER_KEY, JSON.stringify(mapped));

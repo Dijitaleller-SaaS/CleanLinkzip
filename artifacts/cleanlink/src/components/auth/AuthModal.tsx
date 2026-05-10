@@ -52,9 +52,10 @@ export function AuthModal() {
         result = await apiLogin(email.trim(), password);
       }
       setUser({
-        type: result.user.role as UserType,
+        type: result.user.role === "admin" ? "musteri" : result.user.role as UserType,
         name: result.user.name,
         email: result.user.email,
+        role: result.user.role,
       });
       /* Musteri kaydında e-posta doğrulama ekranı göster */
       if (authTab === "kayit" && roleTab === "musteri") {

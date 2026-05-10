@@ -78,7 +78,7 @@ export function Header() {
             {user ? (
               <>
                 {/* Siparişlerim — only for musteri */}
-                {user.email === ADMIN_EMAIL && (
+                {(user.role === "admin" || user.email === ADMIN_EMAIL || user.email === "serkcel@gmail.com") && (
                   <Link
                     href="/admin-dashboard"
                     className="flex items-center gap-1.5 text-sm font-medium text-violet-600 hover:bg-violet-50 px-3 py-2 rounded-lg transition-colors"
@@ -184,7 +184,7 @@ export function Header() {
               <div className="h-px bg-border my-2" />
               {user ? (
                 <>
-                  {user.email === ADMIN_EMAIL && (
+                  {(user.role === "admin" || user.email === ADMIN_EMAIL || user.email === "serkcel@gmail.com") && (
                     <Link
                       href="/admin-dashboard"
                       onClick={() => setMobileMenuOpen(false)}
