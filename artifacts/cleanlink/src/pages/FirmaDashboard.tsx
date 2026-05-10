@@ -493,7 +493,7 @@ function OrdersTab({ orders }: { orders: Order[] }) {
               <p className="text-sm font-bold text-amber-800">Bu ayki müşteri iletişim bilgisi görme hakkınız: {orderQuotaTotal - orderQuotaUsed}/{orderQuotaTotal}</p>
               <p className="text-xs text-amber-700 mt-0.5">
                 {orderQuotaUsed >= orderQuotaTotal
-                  ? "Kotanız doldu. Tüm müşterilere ulaşmak için Elite Üyeliğe geçin."
+                  ? "Kotanız doldu. Tüm müşterilere ulaşmak için CRM paketine geçin."
                   : "Ücretsiz planda ayda 1 siparişin telefon ve adres bilgisini görebilirsiniz."}
               </p>
             </div>
@@ -502,7 +502,7 @@ function OrdersTab({ orders }: { orders: Order[] }) {
             onClick={() => { const el = document.querySelector('[data-tab="reklam"]') as HTMLElement; el?.click(); }}
             className="shrink-0 text-xs font-bold text-amber-800 border border-amber-400 bg-amber-100 hover:bg-amber-200 rounded-lg px-3 py-1.5 transition-colors"
           >
-            Elite'e Geç →
+            CRM'e Geç →
           </button>
         </div>
       )}
@@ -744,7 +744,7 @@ function OrdersTab({ orders }: { orders: Order[] }) {
                               onClick={() => { const el = document.querySelector('[data-tab="reklam"]') as HTMLElement; el?.click(); }}
                               className="block text-[10px] font-bold text-primary hover:underline"
                             >
-                              Elite'e Geç
+                              CRM'e Geç
                             </button>
                           </div>
                         ) : callable ? (
@@ -882,14 +882,14 @@ function PricesTab() {
             <Lock className="w-4 h-4 text-amber-600 flex-shrink-0" />
             <div>
               <p className="text-sm font-bold text-amber-800">Ücretsiz planda en fazla {FREE_GROUP_LIMIT} hizmet grubu aktif edilebilir.</p>
-              <p className="text-xs text-amber-700 mt-0.5">Tüm gruplara erişmek için Elite Üyeliğe geçin.</p>
+              <p className="text-xs text-amber-700 mt-0.5">Tüm gruplara erişmek için CRM paketine geçin.</p>
             </div>
           </div>
           <button
             onClick={() => { const el = document.querySelector('[data-tab="reklam"]') as HTMLElement; el?.click(); }}
             className="shrink-0 text-xs font-bold text-amber-800 border border-amber-400 bg-amber-100 hover:bg-amber-200 rounded-lg px-3 py-1.5 transition-colors"
           >
-            Elite'e Geç →
+            CRM'e Geç →
           </button>
         </div>
       )}
@@ -916,7 +916,7 @@ function PricesTab() {
                   <span className="text-sm text-muted-foreground">{keys.length} hizmet</span>
                   {isGroupLocked && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                      <Lock className="w-2.5 h-2.5" /> Elite'e Geç
+                      <Lock className="w-2.5 h-2.5" /> CRM'e Geç
                     </span>
                   )}
                 </div>

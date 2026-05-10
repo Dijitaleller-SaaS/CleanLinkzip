@@ -5,7 +5,8 @@ const SMTP_HOST = process.env.SMTP_HOST ?? "smtp.gmail.com";
 const SMTP_PORT = parseInt(process.env.SMTP_PORT ?? "587", 10);
 const SMTP_USER = process.env.SMTP_USER ?? "";
 const SMTP_PASS = process.env.SMTP_PASS ?? "";
-const SMTP_FROM = process.env.SMTP_FROM ?? SMTP_USER;
+/* Yandex SMTP requires FROM === authenticated user — ignore SMTP_FROM override */
+const SMTP_FROM = SMTP_USER;
 
 function isConfigured(): boolean {
   return Boolean(SMTP_USER && SMTP_PASS);

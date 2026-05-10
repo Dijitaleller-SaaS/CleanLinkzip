@@ -81245,7 +81245,7 @@ var SMTP_HOST = process.env.SMTP_HOST ?? "smtp.gmail.com";
 var SMTP_PORT = parseInt(process.env.SMTP_PORT ?? "587", 10);
 var SMTP_USER = process.env.SMTP_USER ?? "";
 var SMTP_PASS = process.env.SMTP_PASS ?? "";
-var SMTP_FROM = process.env.SMTP_FROM ?? SMTP_USER;
+var SMTP_FROM = SMTP_USER;
 function isConfigured() {
   return Boolean(SMTP_USER && SMTP_PASS);
 }
