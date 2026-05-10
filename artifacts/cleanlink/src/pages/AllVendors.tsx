@@ -12,26 +12,11 @@ import { useToast } from "@/hooks/use-toast";
 
 /* Pilot firmalar DB'de kayıtlı olmasa da her zaman gösterilir */
 const PILOT_VENDORS: VendorEntry[] = [
-  { name: "Gün Halı Temizlik",       isPublished: true, joinedAt: 0, isSubscribed: true, isSponsor: false, hasPati: true, isNatureFriendly: true, city: "İstanbul", district: "Şişli",          regions: ["Şişli","Kağıthane","Sarıyer","Beyoğlu","Beşiktaş"] },
   { name: "Cleanlink Temizlik",      isPublished: true, joinedAt: 0, isSubscribed: true, isSponsor: false, hasPati: true, isNatureFriendly: true, city: "İstanbul", district: "Beşiktaş",       regions: ["Beşiktaş","Şişli","Beyoğlu","Bağcılar","Küçükçekmece"] },
   { name: "Elitplus+ Koltuk Yıkama", isPublished: true, joinedAt: 0, isSubscribed: true, isSponsor: false, hasPati: true, isNatureFriendly: true, city: "İstanbul", district: "Gaziosmanpaşa", regions: ["Gaziosmanpaşa","Bağcılar","Eyüpsultan","Küçükçekmece","Fatih"] },
 ];
 
 const STATIC_FIRM_DATA: Record<string, Partial<FirmaData>> = {
-  "Gün Halı Temizlik": {
-    id: 1, rating: 4.9, reviews: 0,
-    location: "İstanbul / Şişli", tags: ["Halı Yıkama", "Kilim", "Yün Halı"],
-    verified: true, isPremium: true, badge: "pilot", image: "",
-    phone: "", hasPati: true, isNatureFriendly: true,
-    bio: "Profesyonel halı, kilim ve yün halı yıkama hizmetleri. Endüstriyel makineler ve organik ürünlerle temiz ve hijyenik teslimat.",
-    founded: "2024", completedJobs: 0, certs: [],
-    services: [
-      { name: "Halı Yıkama", price: "120", unit: "/ m²", scope: "Endüstriyel makine, organik deterjan, kuru teslim garantisi." },
-      { name: "Kilim Yıkama", price: "150", unit: "/ m²", scope: "El yıkama, doğal kuruma." },
-    ],
-    galleryColors: [{ gradient: "from-amber-400 to-orange-500", icon: Layers, label: "Halı Yıkama" }],
-    reviewList: [],
-  },
   "Cleanlink Temizlik": {
     id: 2, rating: 4.9, reviews: 0,
     location: "İstanbul / Beşiktaş", tags: ["Ev Temizliği", "Ofis", "Derin Temizlik"],

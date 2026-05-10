@@ -12,38 +12,6 @@ import { getFirmaSlugFromUrl, toSlug } from "@/lib/analytics";
 
 const COMPANIES: FirmaData[] = [
   {
-    id: 1,
-    name: "Gün Halı Temizlik",
-    rating: 4.9,
-    reviews: 0,
-    location: "İstanbul / Şişli",
-    tags: ["Halı Yıkama", "Kilim", "Yün Halı"],
-    verified: true,
-    isPremium: true,
-    badge: "pilot",
-    image: "",
-    phone: "",
-    bio: "Profesyonel halı, kilim ve yün halı yıkama hizmetleri. Endüstriyel makineler ve organik ürünlerle temiz ve hijyenik teslimat.",
-    founded: "2024",
-    completedJobs: 0,
-    hasPati: true,
-    isNatureFriendly: true,
-    certs: [
-      { label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" },
-    ],
-    services: [
-      { name: "Halı Yıkama", price: "120", unit: "/ m²", scope: "Endüstriyel makine, organik deterjan, kuru teslim garantisi." },
-      { name: "Kilim Yıkama", price: "150", unit: "/ m²", scope: "El yıkama, doğal kuruma, kilim şekil koruma." },
-      { name: "Yün Halı", price: "180", unit: "/ m²", scope: "Nötr deterjan, düşük ısıda kurutma, renk koruma." },
-    ],
-    galleryColors: [
-      { gradient: "from-amber-400 to-orange-500", icon: Layers, label: "Halı Yıkama" },
-      { gradient: "from-orange-400 to-rose-400", icon: Wind, label: "Kilim" },
-      { gradient: "from-teal-400 to-emerald-500", icon: SprayCan, label: "Organik Ürünler" },
-    ],
-    reviewList: [],
-  },
-  {
     id: 2,
     name: "Cleanlink Temizlik",
     rating: 4.9,

@@ -13,7 +13,6 @@ import { SprayCan } from "lucide-react";
 
 /* ── Pilot firm routing table ── */
 const SEED_ROUTING: { name: string; regions: string[]; tier: number }[] = [
-  { name: "Gün Halı Temizlik",       regions: ["Şişli","Kağıthane","Sarıyer","Beyoğlu","Beşiktaş"],               tier: 3 },
   { name: "Cleanlink Temizlik",      regions: ["Beşiktaş","Şişli","Beyoğlu","Bağcılar","Küçükçekmece"],           tier: 3 },
   { name: "Elitplus+ Koltuk Yıkama", regions: ["Gaziosmanpaşa","Bağcılar","Eyüpsultan","Küçükçekmece","Fatih"],   tier: 3 },
 ];
