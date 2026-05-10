@@ -1,7 +1,21 @@
-import { Sparkles, ArrowRight, Instagram, Twitter, Facebook, Building2, ChevronRight } from "lucide-react";
+import { Sparkles, ArrowRight, Instagram, Twitter, Facebook, Building2, ChevronRight, LogIn } from "lucide-react";
 import { Link } from "wouter";
+import { useApp } from "@/context/AppContext";
+import { useLocation } from "wouter";
 
 export function Footer() {
+  const { user, setShowAuthModal, setAuthMode } = useApp();
+  const [, navigate] = useLocation();
+
+  const handleFirmaGiris = () => {
+    if (user?.type === "firma") {
+      navigate("/firma-dashboard");
+    } else {
+      setAuthMode("firma");
+      setShowAuthModal(true);
+    }
+  };
+
   return (
     <footer className="bg-foreground text-white pt-20 pb-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,7 +32,7 @@ export function Footer() {
             </p>
           </div>
 
-          <div className="relative z-10 w-full md:w-auto flex-shrink-0 flex flex-col items-center gap-2">
+          <div className="relative z-10 w-full md:w-auto flex-shrink-0 flex flex-col items-center gap-3">
             <Link
               href="/pilot-sartlari"
               className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-white text-primary hover:bg-gray-50 text-lg font-semibold h-14 px-8 rounded-2xl shadow-xl shadow-black/10 group transition-colors"
@@ -26,6 +40,13 @@ export function Footer() {
               İşini 999 TL / Ay'a Dijitalleştir
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
+            <button
+              onClick={handleFirmaGiris}
+              className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold h-10 px-6 rounded-xl transition-colors"
+            >
+              <LogIn className="w-4 h-4" />
+              {user?.type === "firma" ? "Firma Paneline Git" : "Firma Girişi Yap"}
+            </button>
             <p className="text-white/60 text-xs">İlk ay ücretsiz · İptal garantisi</p>
           </div>
         </div>

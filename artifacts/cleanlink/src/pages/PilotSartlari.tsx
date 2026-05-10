@@ -75,13 +75,18 @@ export default function PilotSartlari() {
 
   const handleCrmCta = () => {
     if (!user) {
-      setAuthMode("musteri");
+      setAuthMode("firma");
       setShowAuthModal(true);
     } else if (user.type === "firma") {
       navigate("/firma-dashboard");
     } else {
       setBasvuruOpen(true);
     }
+  };
+
+  const handleFirmaGiris = () => {
+    setAuthMode("firma");
+    setShowAuthModal(true);
   };
 
   return (
@@ -187,7 +192,7 @@ export default function PilotSartlari() {
                 <p className="text-white/40 text-xs text-center">
                   Zaten hesabınız var mı?{" "}
                   <button
-                    onClick={() => { setAuthMode("musteri"); setShowAuthModal(true); }}
+                    onClick={handleFirmaGiris}
                     className="text-primary hover:underline"
                   >
                     Giriş yapın
@@ -308,7 +313,7 @@ export default function PilotSartlari() {
                 Ödemenizin <span className="font-semibold text-orange-700">%60'ı</span> doğrudan Google Ads yönetimine aktarılır.
                 Reklam yönetim ücreti ayrıca talep edilmez.
               </p>
-              <div className="mt-5">
+              <div className="mt-4 mb-4">
                 <div className="w-full bg-orange-100 rounded-full h-2">
                   <div className="bg-gradient-to-r from-orange-400 to-orange-600 h-2 rounded-full" style={{ width: "60%" }} />
                 </div>
@@ -316,6 +321,16 @@ export default function PilotSartlari() {
                   <span className="text-orange-600 font-bold">%60 Reklam</span>
                   <span>%40 Operasyon</span>
                 </div>
+              </div>
+              {/* Google Ads logo */}
+              <div className="flex items-center gap-2 mt-2">
+                <svg viewBox="0 0 48 48" className="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M43.5 22.5h-1.5v-.75C42 12.51 34.74 5.25 25.5 5.25S9 12.51 9 21.75v.75H7.5C6.12 22.5 5 23.62 5 25.02v14.96C5 41.38 6.12 42.5 7.5 42.5h36c1.38 0 2.5-1.12 2.5-2.52V25.02C46 23.62 44.88 22.5 43.5 22.5zM25.5 8.25c8.01 0 14.25 5.99 14.25 13.5v.75h-28.5v-.75c0-7.51 6.24-13.5 14.25-13.5z" fill="#4285F4"/>
+                  <circle cx="17" cy="33" r="4" fill="#EA4335"/>
+                  <circle cx="25.5" cy="33" r="4" fill="#FBBC04"/>
+                  <circle cx="34" cy="33" r="4" fill="#34A853"/>
+                </svg>
+                <span className="text-[11px] font-bold text-gray-500 tracking-wide">Google Ads ile Yönetilir</span>
               </div>
             </div>
           </div>

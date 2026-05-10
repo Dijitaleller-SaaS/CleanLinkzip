@@ -5,12 +5,15 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useApp, UserType } from "@/context/AppContext";
 import { apiLogin, apiRegister, apiForgotPassword } from "@/lib/api";
+import { useLocation } from "wouter";
 
 type AuthTab = "giris" | "kayit";
 type ModalStep = "auth" | "sifremi-unuttum" | "sifremi-unuttum-basarili" | "email-dogrulama";
 
 export function AuthModal() {
-  const { showAuthModal, setShowAuthModal, setUser } = useApp();
+  const { showAuthModal, setShowAuthModal, setUser, authMode } = useApp();
+  const [, navigate] = useLocation();
+  const isFirma = authMode === "firma";
 
   const [step, setStep] = useState<ModalStep>("auth");
   const [authTab, setAuthTab] = useState<AuthTab>("giris");
@@ -43,7 +46,8 @@ export function AuthModal() {
     try {
       let result;
       if (authTab === "kayit") {
-        result = await apiRegister(email.trim(), name.trim(), password, "musteri" as UserType);
+        const registerRole: UserType = isFirma ? "firma" : "musteri";
+        result = await apiRegister(email.trim(), name.trim(), password, registerRole);
       } else {
         result = await apiLogin(email.trim(), password);
       }
@@ -58,6 +62,9 @@ export function AuthModal() {
       } else {
         setShowAuthModal(false);
         reset();
+        if (result.user.role === "firma") {
+          navigate("/firma-dashboard");
+        }
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Bir hata oluştu");
@@ -127,10 +134,16 @@ export function AuthModal() {
                         <span className="font-bold text-xl text-primary tracking-tight">CleanLink</span>
                       </div>
                       <h2 className="text-2xl font-bold text-foreground">
-                        {authTab === "giris" ? "Hesabınıza Giriş Yapın" : "Hesap Oluşturun"}
+                        {isFirma
+                          ? (authTab === "giris" ? "Firma Girişi" : "Firma Hesabı Oluştur")
+                          : (authTab === "giris" ? "Hesabınıza Giriş Yapın" : "Hesap Oluşturun")
+                        }
                       </h2>
                       <p className="text-sm text-muted-foreground mt-1">
-                        {authTab === "giris" ? "Hoş geldiniz, hizmetlerinizi yönetin." : "Ücretsiz hesap oluşturun ve temizlik hizmetlerini keşfedin."}
+                        {isFirma
+                          ? (authTab === "giris" ? "Firma panelinize erişin." : "Firmanızı CleanLink'e kaydedin.")
+                          : (authTab === "giris" ? "Hoş geldiniz, hizmetlerinizi yönetin." : "Ücretsiz hesap oluşturun ve temizlik hizmetlerini keşfedin.")
+                        }
                       </p>
                     </div>
 
@@ -176,12 +189,12 @@ export function AuthModal() {
                         {authTab === "kayit" && (
                           <div>
                             <label className="block text-sm font-medium text-foreground mb-1.5">
-                              Adınız Soyadınız
+                              {isFirma ? "Firma Adı" : "Adınız Soyadınız"}
                             </label>
                             <input
                               type="text" value={name}
                               onChange={e => { setName(e.target.value); setError(""); }}
-                              placeholder="Örn: Fatma Kaya"
+                              placeholder={isFirma ? "Örn: Gün Temizlik Hizmetleri" : "Örn: Fatma Kaya"}
                               className="w-full border-2 border-border rounded-xl px-4 py-3 outline-none focus:border-primary transition-colors text-foreground font-medium text-sm"
                               autoFocus
                             />
@@ -261,20 +274,36 @@ export function AuthModal() {
 
                       </form>
 
-                      {/* Firma yönlendirme */}
-                      <div className="mt-5 pt-4 border-t border-border flex items-center justify-center gap-2">
-                        <Building2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                        <p className="text-xs text-muted-foreground">
-                          Firmanızı mı kaydetmek istiyorsunuz?{" "}
-                          <Link
-                            href="/pilot-sartlari"
-                            onClick={handleClose}
-                            className="text-primary font-semibold hover:underline"
-                          >
-                            İş Ortaklığı →
-                          </Link>
-                        </p>
-                      </div>
+                      {/* Alt yönlendirme */}
+                      {!isFirma && (
+                        <div className="mt-5 pt-4 border-t border-border flex items-center justify-center gap-2">
+                          <Building2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                          <p className="text-xs text-muted-foreground">
+                            Firmanızı mı kaydetmek istiyorsunuz?{" "}
+                            <Link
+                              href="/pilot-sartlari"
+                              onClick={handleClose}
+                              className="text-primary font-semibold hover:underline"
+                            >
+                              İş Ortaklığı →
+                            </Link>
+                          </p>
+                        </div>
+                      )}
+                      {isFirma && (
+                        <div className="mt-5 pt-4 border-t border-border flex items-center justify-center gap-2">
+                          <p className="text-xs text-muted-foreground">
+                            Müşteri misiniz?{" "}
+                            <Link
+                              href="/"
+                              onClick={handleClose}
+                              className="text-primary font-semibold hover:underline"
+                            >
+                              Müşteri girişi →
+                            </Link>
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -361,14 +390,11 @@ export function AuthModal() {
                         bir doğrulama bağlantısı gönderdik. Lütfen e-postanızı kontrol edin.
                       </p>
                       <Button
-                        onClick={handleClose}
+                        onClick={() => { handleClose(); if (isFirma) navigate("/firma-dashboard"); }}
                         className="w-full h-12 rounded-xl font-bold mb-3"
                       >
-                        <CheckCircle2 className="w-4 h-4 mr-2" /> Devam Et (demo)
+                        <CheckCircle2 className="w-4 h-4 mr-2" /> Devam Et
                       </Button>
-                      <p className="text-xs text-muted-foreground">
-                        Bu bir demo ortamıdır — gerçek e-posta gönderilmez.
-                      </p>
                     </div>
                   </motion.div>
                 )}
