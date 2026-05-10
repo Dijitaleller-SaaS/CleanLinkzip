@@ -193,6 +193,19 @@ export const auditLogTable = pgTable("audit_log", {
 });
 export type AuditLog = typeof auditLogTable.$inferSelect;
 
+/* ── Transaction Audit Log (güvenlik kanıtı) ── */
+export const transactionAuditLogTable = pgTable("transaction_audit_log", {
+  id:              serial("id").primaryKey(),
+  transactionId:   varchar("transaction_id", { length: 100 }).notNull(),
+  userId:          integer("user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  ipAddress:       varchar("ip_address", { length: 64 }).default("").notNull(),
+  actionType:      varchar("action_type", { length: 50 }).notNull(),
+  documentVersion: varchar("document_version", { length: 20 }).notNull().default("1.0"),
+  meta:            jsonb("meta").$type<Record<string, unknown>>().default({}).notNull(),
+  timestamp:       timestamp("timestamp").defaultNow().notNull(),
+});
+export type TransactionAuditLog = typeof transactionAuditLogTable.$inferSelect;
+
 /* ── Bayi (Franchise) Profilleri ── */
 export const bayiProfilesTable = pgTable("bayi_profiles", {
   id:           serial("id").primaryKey(),

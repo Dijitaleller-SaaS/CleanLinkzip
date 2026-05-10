@@ -44,7 +44,7 @@ export function AnnouncementBar() {
           <>
             <MapPin className="w-3.5 h-3.5 text-blue-300 flex-shrink-0 hidden sm:block" />
             <p className="flex-1 text-center text-white text-[11px] sm:text-xs font-semibold leading-snug tracking-wide truncate">
-              📍 Operasyon Güncellemesi: Şu an sadece İstanbul genelinde tam kapasite hizmet vermekteyiz — 4 büyük şehrimiz için hazırlıklarımız devam ediyor!
+              📍 Şu an sadece İstanbul genelinde tam kapasite hizmet vermekteyiz — 4 büyük şehrimiz için hazırlıklarımız devam ediyor!
             </p>
             <div className="flex-shrink-0 flex items-center gap-1 bg-white/15 border border-white/20 rounded-md px-2 py-0.5 backdrop-blur-sm">
               <span className="text-white text-[10px] font-bold whitespace-nowrap">🚀 Genişliyoruz</span>

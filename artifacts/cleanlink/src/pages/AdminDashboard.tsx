@@ -9,6 +9,7 @@ import {
   FileEdit, Package, Sparkles, RefreshCw, Loader2,
   ClipboardList, Phone, Mail, Star, Layers,
   ShieldCheck, ScrollText, Scale, Search, ChevronDown, ExternalLink,
+  ShieldAlert, Hash, Wifi, Activity,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -21,13 +22,14 @@ import {
   apiGetPageContent, apiUpdatePageContent,
   apiAdminGetPilotApplications, apiAdminDeletePilotApplication,
   apiAdminGetOrders, apiAdminUpdateOrderStatus,
-  type AdminVendor, type AdminFinancial, type AdminNotifications, type CmsBlogPost, type PilotApplicationApi, type AdminOrder,
+  apiAdminGetTransactionAuditLog,
+  type AdminVendor, type AdminFinancial, type AdminNotifications, type CmsBlogPost, type PilotApplicationApi, type AdminOrder, type TransactionAuditLogEntry,
 } from "@/lib/api";
 
 /* ─────────────────────────────────────
    Types
 ──────────────────────────────────────*/
-type AdminTab = "firmalar" | "siparisler" | "finansal" | "cms" | "bildirimler";
+type AdminTab = "firmalar" | "siparisler" | "finansal" | "cms" | "bildirimler" | "guvenlik";
 type CMSSubTab =
   | "blog"
   | "hakkimizda"
@@ -1320,6 +1322,148 @@ function BildirimlerTab() {
 }
 
 /* ═══════════════════════════════════════════
+   Güvenlik Kanıtı Tab
+═══════════════════════════════════════════ */
+const ACTION_LABELS: Record<string, { label: string; color: string }> = {
+  order_created:    { label: "Sipariş Oluşturuldu",  color: "bg-blue-100 text-blue-700" },
+  order_tamamlandi: { label: "Tamamlandı",            color: "bg-green-100 text-green-700" },
+  order_onaylandi:  { label: "Onaylandı",             color: "bg-teal-100 text-teal-700" },
+  order_iptal:      { label: "İptal Edildi",          color: "bg-rose-100 text-rose-700" },
+};
+
+function GuvenlikTab() {
+  const [logs, setLogs] = useState<TransactionAuditLogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { setLogs(await apiAdminGetTransactionAuditLog()); }
+    catch (e) { setError((e as Error).message); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = logs.filter(l => {
+    const q = search.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      l.transactionId.toLowerCase().includes(q) ||
+      l.actionType.toLowerCase().includes(q) ||
+      l.ipAddress.includes(q) ||
+      JSON.stringify(l.meta).toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <motion.div key="guvenlik" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-violet-100 flex items-center justify-center">
+            <ShieldAlert className="w-4 h-4 text-violet-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-foreground">Güvenlik Kanıtı</h2>
+            <p className="text-[11px] text-muted-foreground">Tüm sipariş ve sözleşme işlemlerinin değiştirilemez kaydı</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground bg-secondary px-2.5 py-1 rounded-lg">
+            {filtered.length} kayıt
+          </span>
+          <button onClick={load} className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:bg-primary/5 border border-primary/20 rounded-lg px-3 py-1.5 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" /> Yenile
+          </button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input
+          value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="İşlem ID, IP adresi, aksiyon türü ile ara..."
+          className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+        />
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        {Object.entries(ACTION_LABELS).map(([key, cfg]) => {
+          const count = logs.filter(l => l.actionType === key).length;
+          return (
+            <div key={key} className="bg-white border border-border rounded-xl p-3 text-center">
+              <p className="text-xl font-extrabold text-foreground">{count}</p>
+              <p className={`text-[10px] font-bold mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${cfg.color}`}>{cfg.label}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {loading ? <Spinner /> : error ? <ErrorBox msg={error} onRetry={load} /> : filtered.length === 0 ? (
+        <div className="bg-white border border-border rounded-2xl py-16 text-center text-muted-foreground text-sm">
+          Henüz kayıt yok
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(log => {
+            const cfg = ACTION_LABELS[log.actionType] ?? { label: log.actionType, color: "bg-gray-100 text-gray-600" };
+            const meta = log.meta as Record<string, unknown>;
+            return (
+              <div key={log.id} className="bg-white border border-border rounded-2xl p-4 flex flex-col sm:flex-row sm:items-start gap-3">
+                {/* Left: action badge */}
+                <div className="flex-shrink-0 flex items-center gap-2 sm:w-44">
+                  <Activity className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${cfg.color}`}>{cfg.label}</span>
+                </div>
+                {/* Middle: details */}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
+                      <Hash className="w-3 h-3" />{log.transactionId}
+                    </span>
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Wifi className="w-3 h-3" />{log.ipAddress || "—"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground border border-border rounded-md px-1.5 py-0.5">
+                      v{log.documentVersion}
+                    </span>
+                  </div>
+                  {Object.keys(meta).length > 0 && (
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                      {meta.service && <span>Hizmet: <strong className="text-foreground">{String(meta.service)}</strong></span>}
+                      {meta.total !== undefined && <span>Tutar: <strong className="text-foreground">{Number(meta.total).toLocaleString("tr-TR")} TL</strong></span>}
+                      {meta.vendorName && <span>Firma: <strong className="text-foreground">{String(meta.vendorName)}</strong></span>}
+                      {meta.customerName && <span>Müşteri: <strong className="text-foreground">{String(meta.customerName)}</strong></span>}
+                      {meta.actorRole && <span>İşlemi Yapan: <strong className="text-foreground">{String(meta.actorRole)}</strong></span>}
+                    </div>
+                  )}
+                </div>
+                {/* Right: timestamp */}
+                <div className="flex-shrink-0 text-right">
+                  <p className="text-[11px] font-semibold text-foreground">
+                    {new Date(log.timestamp).toLocaleDateString("tr-TR")}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {new Date(log.timestamp).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                  </p>
+                  {log.userId && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">UID: {log.userId}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════
    Main AdminDashboard
 ═══════════════════════════════════════════ */
 export default function AdminDashboard() {
@@ -1328,22 +1472,24 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<AdminTab>("firmalar");
   const [notifCount, setNotifCount] = useState(0);
 
+  const isAdmin = user?.role === "admin" || user?.email === ADMIN_EMAIL || user?.email === "serkcel@gmail.com";
+
   /* Redirect if not admin */
   useEffect(() => {
-    if (user !== undefined && user?.email !== ADMIN_EMAIL) {
+    if (user !== undefined && !isAdmin) {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, navigate, isAdmin]);
 
   /* Notification badge */
   useEffect(() => {
-    if (user?.email !== ADMIN_EMAIL) return;
+    if (!isAdmin) return;
     apiAdminGetNotifications()
       .then(n => setNotifCount(n.newFirms.length + n.pendingFirms.length + n.expiredFirms.length))
       .catch(() => {});
   }, [user]);
 
-  if (!user || user.email !== ADMIN_EMAIL) {
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -1357,6 +1503,7 @@ export default function AdminDashboard() {
     { key: "finansal",    label: "Finansal",    icon: TrendingUp },
     { key: "cms",         label: "CMS",         icon: FileText },
     { key: "bildirimler", label: "Bildirimler", icon: Bell },
+    { key: "guvenlik",    label: "Güvenlik",    icon: ShieldAlert },
   ];
 
   return (
@@ -1424,6 +1571,7 @@ export default function AdminDashboard() {
               {tab === "finansal"    && <FinansalTab />}
               {tab === "cms"         && <CMSTab />}
               {tab === "bildirimler" && <BildirimlerTab />}
+              {tab === "guvenlik"    && <GuvenlikTab />}
             </motion.div>
           </AnimatePresence>
         </main>

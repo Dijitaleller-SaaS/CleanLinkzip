@@ -69574,6 +69574,7 @@ __export(schema_exports, {
   paytrTransactionsTable: () => paytrTransactionsTable,
   pilotApplicationsTable: () => pilotApplicationsTable,
   reviewsTable: () => reviewsTable,
+  transactionAuditLogTable: () => transactionAuditLogTable,
   usersTable: () => usersTable,
   vendorProfilesTable: () => vendorProfilesTable
 });
@@ -81116,6 +81117,16 @@ var auditLogTable = pgTable("audit_log", {
   ip: varchar("ip", { length: 64 }).default("").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
+var transactionAuditLogTable = pgTable("transaction_audit_log", {
+  id: serial("id").primaryKey(),
+  transactionId: varchar("transaction_id", { length: 100 }).notNull(),
+  userId: integer("user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  ipAddress: varchar("ip_address", { length: 64 }).default("").notNull(),
+  actionType: varchar("action_type", { length: 50 }).notNull(),
+  documentVersion: varchar("document_version", { length: 20 }).notNull().default("1.0"),
+  meta: jsonb("meta").$type().default({}).notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull()
+});
 var bayiProfilesTable = pgTable("bayi_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }).unique(),
@@ -82049,6 +82060,25 @@ async function redeemCoupon(rawCode, orderTotal, tx = db) {
 var coupons_default = router5;
 
 // src/routes/orders.ts
+var DOC_VERSION = "1.0";
+function getIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string") return forwarded.split(",")[0].trim();
+  return req.socket?.remoteAddress ?? "";
+}
+async function logTransaction(opts) {
+  try {
+    await db.insert(transactionAuditLogTable).values({
+      transactionId: opts.transactionId,
+      userId: opts.userId,
+      ipAddress: opts.ipAddress,
+      actionType: opts.actionType,
+      documentVersion: DOC_VERSION,
+      meta: opts.meta ?? {}
+    });
+  } catch {
+  }
+}
 async function notify(userId, type, title, body, link = "") {
   try {
     await db.insert(notificationsTable).values({ userId, type, title, body, link });
@@ -82223,6 +82253,19 @@ router6.post("/orders", requireAuth, async (req, res) => {
       `${name} - ${body.service}`,
       "/firma-dashboard"
     );
+    await logTransaction({
+      transactionId: orderId,
+      userId,
+      ipAddress: getIp(req),
+      actionType: "order_created",
+      meta: {
+        service: body.service,
+        total: order.total,
+        vendorId: vendorUser.id,
+        vendorName: vendorUser.name,
+        couponCode: order.couponCode || null
+      }
+    });
     res.status(201).json({ order: { ...order, isContactUnlocked: false } });
   } catch {
     res.status(500).json({ error: "Sipari\u015F olu\u015Fturulurken hata olu\u015Ftu" });
@@ -82287,6 +82330,21 @@ router6.patch("/orders/:id/status", requireAuth, async (req, res) => {
       return;
     }
     const [updated] = await db.update(ordersTable).set(update).where(eq(ordersTable.id, String(id))).returning();
+    if (status !== void 0 && ["tamamlandi", "onaylandi", "iptal"].includes(status)) {
+      await logTransaction({
+        transactionId: String(id),
+        userId,
+        ipAddress: getIp(req),
+        actionType: `order_${status}`,
+        meta: {
+          service: updated.service,
+          total: updated.total,
+          vendorName: updated.vendorName,
+          customerName: updated.customerName,
+          actorRole: role
+        }
+      });
+    }
     if (status !== void 0 && isVendor && existing.customerId !== null) {
       const labels = {
         onaylandi: "onayland\u0131",
@@ -82750,6 +82808,23 @@ router7.get("/admin/orders", async (_req, res) => {
       createdAt: ordersTable.createdAt
     }).from(ordersTable).orderBy(ordersTable.createdAt);
     res.json({ orders: rows });
+  } catch {
+    res.status(500).json({ error: "Sunucu hatas\u0131" });
+  }
+});
+router7.get("/admin/transaction-audit-log", async (_req, res) => {
+  try {
+    const logs = await db.select({
+      id: transactionAuditLogTable.id,
+      transactionId: transactionAuditLogTable.transactionId,
+      userId: transactionAuditLogTable.userId,
+      ipAddress: transactionAuditLogTable.ipAddress,
+      actionType: transactionAuditLogTable.actionType,
+      documentVersion: transactionAuditLogTable.documentVersion,
+      meta: transactionAuditLogTable.meta,
+      timestamp: transactionAuditLogTable.timestamp
+    }).from(transactionAuditLogTable).orderBy(desc(transactionAuditLogTable.timestamp)).limit(500);
+    res.json({ logs });
   } catch {
     res.status(500).json({ error: "Sunucu hatas\u0131" });
   }

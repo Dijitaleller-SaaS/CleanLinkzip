@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, usersTable, vendorProfilesTable, ordersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, usersTable, vendorProfilesTable, ordersTable, transactionAuditLogTable } from "@workspace/db";
+import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../lib/authMiddleware";
 import { requireAdmin } from "../lib/adminMiddleware";
 import { sendMail, buildApprovalHtml } from "../lib/mailer";
@@ -546,6 +546,29 @@ router.get("/admin/orders", async (_req, res) => {
       .from(ordersTable)
       .orderBy(ordersTable.createdAt);
     res.json({ orders: rows });
+  } catch {
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
+});
+
+/* ── GET /api/admin/transaction-audit-log — Güvenlik Kanıtı ── */
+router.get("/admin/transaction-audit-log", async (_req, res) => {
+  try {
+    const logs = await db
+      .select({
+        id:              transactionAuditLogTable.id,
+        transactionId:   transactionAuditLogTable.transactionId,
+        userId:          transactionAuditLogTable.userId,
+        ipAddress:       transactionAuditLogTable.ipAddress,
+        actionType:      transactionAuditLogTable.actionType,
+        documentVersion: transactionAuditLogTable.documentVersion,
+        meta:            transactionAuditLogTable.meta,
+        timestamp:       transactionAuditLogTable.timestamp,
+      })
+      .from(transactionAuditLogTable)
+      .orderBy(desc(transactionAuditLogTable.timestamp))
+      .limit(500);
+    res.json({ logs });
   } catch {
     res.status(500).json({ error: "Sunucu hatası" });
   }

@@ -1,6 +1,33 @@
 import { Router } from "express";
-import { db, ordersTable, vendorProfilesTable, usersTable, notificationsTable } from "@workspace/db";
+import { db, ordersTable, vendorProfilesTable, usersTable, notificationsTable, transactionAuditLogTable } from "@workspace/db";
 import { eq, and, gte, isNotNull, sql } from "drizzle-orm";
+
+const DOC_VERSION = "1.0";
+
+function getIp(req: import("express").Request): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string") return forwarded.split(",")[0].trim();
+  return req.socket?.remoteAddress ?? "";
+}
+
+async function logTransaction(opts: {
+  transactionId: string;
+  userId: number | null;
+  ipAddress: string;
+  actionType: string;
+  meta?: Record<string, unknown>;
+}) {
+  try {
+    await db.insert(transactionAuditLogTable).values({
+      transactionId: opts.transactionId,
+      userId: opts.userId,
+      ipAddress: opts.ipAddress,
+      actionType: opts.actionType,
+      documentVersion: DOC_VERSION,
+      meta: opts.meta ?? {},
+    });
+  } catch { /* non-critical — swallow */ }
+}
 
 async function notify(userId: number, type: string, title: string, body: string, link = "") {
   try { await db.insert(notificationsTable).values({ userId, type, title, body, link }); } catch { /* swallow */ }
@@ -265,6 +292,21 @@ router.post("/orders", requireAuth, async (req: AuthRequest, res) => {
     await notify(vendorUser.id, "new_order", "Yeni Sipariş",
       `${name} - ${body.service}`, "/firma-dashboard");
 
+    /* Audit log — sipariş oluşturuldu */
+    await logTransaction({
+      transactionId: orderId,
+      userId,
+      ipAddress: getIp(req),
+      actionType: "order_created",
+      meta: {
+        service: body.service,
+        total: order.total,
+        vendorId: vendorUser.id,
+        vendorName: vendorUser.name,
+        couponCode: order.couponCode || null,
+      },
+    });
+
     res.status(201).json({ order: { ...order, isContactUnlocked: false } });
   } catch {
     res.status(500).json({ error: "Sipariş oluşturulurken hata oluştu" });
@@ -352,6 +394,23 @@ router.patch("/orders/:id/status", requireAuth, async (req: AuthRequest, res) =>
       .set(update)
       .where(eq(ordersTable.id, String(id)))
       .returning();
+
+    /* Audit log — sipariş tamamlandı veya onaylandı */
+    if (status !== undefined && ["tamamlandi", "onaylandi", "iptal"].includes(status)) {
+      await logTransaction({
+        transactionId: String(id),
+        userId,
+        ipAddress: getIp(req),
+        actionType: `order_${status}`,
+        meta: {
+          service: updated.service,
+          total: updated.total,
+          vendorName: updated.vendorName,
+          customerName: updated.customerName,
+          actorRole: role,
+        },
+      });
+    }
 
     /* Notify the customer when vendor changes status */
     if (status !== undefined && isVendor && existing.customerId !== null) {

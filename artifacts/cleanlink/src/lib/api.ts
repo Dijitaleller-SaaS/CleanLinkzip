@@ -596,3 +596,20 @@ export async function apiUpdatePageContent(pageKey: string, fields: Record<strin
   const data = await request<{ content: Record<string, string> }>("PUT", `/cms/pages/${pageKey}`, fields, true);
   return data.content;
 }
+
+/* ── Transaction Audit Log ── */
+export interface TransactionAuditLogEntry {
+  id: number;
+  transactionId: string;
+  userId: number | null;
+  ipAddress: string;
+  actionType: string;
+  documentVersion: string;
+  meta: Record<string, unknown>;
+  timestamp: string;
+}
+
+export async function apiAdminGetTransactionAuditLog(): Promise<TransactionAuditLogEntry[]> {
+  const data = await request<{ logs: TransactionAuditLogEntry[] }>("GET", "/admin/transaction-audit-log", undefined, true);
+  return data.logs;
+}
