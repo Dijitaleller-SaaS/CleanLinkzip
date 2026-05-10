@@ -81477,16 +81477,29 @@ router2.post("/auth/register", registerLimiter, async (req, res) => {
     return;
   }
   const userRole = isAdminEmail(email3) ? "admin" : role === "firma" ? "firma" : "musteri";
+  const trimmedEmail = email3.trim().toLowerCase();
+  const trimmedName = name.trim();
   try {
-    const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email3.toLowerCase())).limit(1);
-    if (existing.length > 0) {
-      res.status(409).json({ error: "Bu e-posta zaten kay\u0131tl\u0131" });
+    const existingEmail = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, trimmedEmail)).limit(1);
+    if (existingEmail.length > 0) {
+      res.status(409).json({ error: "Bu e-posta adresi zaten kay\u0131tl\u0131" });
       return;
     }
-    const passwordHash = await bcryptjs_default.hash(password, 10);
-    const [user] = await db.insert(usersTable).values({ email: email3.toLowerCase(), name, passwordHash, role: userRole }).returning();
     if (userRole === "firma") {
-      await db.insert(vendorProfilesTable).values({ userId: user.id });
+      const existingName = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.name, trimmedName)).limit(1);
+      if (existingName.length > 0) {
+        res.status(409).json({ error: "Bu firma ad\u0131 zaten kay\u0131tl\u0131. L\xFCtfen farkl\u0131 bir isim kullan\u0131n." });
+        return;
+      }
+    }
+    const passwordHash = await bcryptjs_default.hash(password, 10);
+    const [user] = await db.insert(usersTable).values({ email: trimmedEmail, name: trimmedName, passwordHash, role: userRole }).returning();
+    if (userRole === "firma") {
+      await db.insert(vendorProfilesTable).values({
+        userId: user.id,
+        subscriptionPending: true,
+        isPublished: false
+      });
     }
     const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role, tokenVersion: user.tokenVersion });
     if (userRole === "firma") {

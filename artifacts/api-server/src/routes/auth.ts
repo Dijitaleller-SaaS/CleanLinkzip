@@ -62,27 +62,51 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
   /* Admin e-postalar otomatik admin rolü alır */
   const userRole = isAdminEmail(email) ? "admin" : (role === "firma" ? "firma" : "musteri");
 
+  /* Trim inputs */
+  const trimmedEmail = email.trim().toLowerCase();
+  const trimmedName  = name.trim();
+
   try {
-    const existing = await db
+    /* Duplicate e-posta kontrolü */
+    const existingEmail = await db
       .select({ id: usersTable.id })
       .from(usersTable)
-      .where(eq(usersTable.email, email.toLowerCase()))
+      .where(eq(usersTable.email, trimmedEmail))
       .limit(1);
 
-    if (existing.length > 0) {
-      res.status(409).json({ error: "Bu e-posta zaten kayıtlı" });
+    if (existingEmail.length > 0) {
+      res.status(409).json({ error: "Bu e-posta adresi zaten kayıtlı" });
       return;
+    }
+
+    /* Duplicate isim kontrolü (sadece firma hesapları için — marka ismi benzersiz olmalı) */
+    if (userRole === "firma") {
+      const existingName = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(eq(usersTable.name, trimmedName))
+        .limit(1);
+
+      if (existingName.length > 0) {
+        res.status(409).json({ error: "Bu firma adı zaten kayıtlı. Lütfen farklı bir isim kullanın." });
+        return;
+      }
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
     const [user] = await db
       .insert(usersTable)
-      .values({ email: email.toLowerCase(), name, passwordHash, role: userRole })
+      .values({ email: trimmedEmail, name: trimmedName, passwordHash, role: userRole })
       .returning();
 
     if (userRole === "firma") {
-      await db.insert(vendorProfilesTable).values({ userId: user.id });
+      /* Yeni firma kayıtları pilot süreçte admin onayına gönderilir (subscriptionPending=true) */
+      await db.insert(vendorProfilesTable).values({
+        userId:              user.id,
+        subscriptionPending: true,
+        isPublished:         false,
+      });
     }
 
     const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role, tokenVersion: user.tokenVersion });
