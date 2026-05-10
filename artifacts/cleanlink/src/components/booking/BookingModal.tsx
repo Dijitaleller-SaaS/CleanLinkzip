@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X, CalendarDays, MapPin, ChevronDown, ChevronUp,
   CheckCircle2, Clock, PartyPopper, Phone, AlertCircle,
-  Home, Sofa, Car, Layers, Moon,
+  Home, Sofa, Car, Layers, Moon, Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp, TR_REGIONS, SERVICE_META, SERVICE_GROUPS } from "@/context/AppContext";
@@ -84,10 +84,11 @@ export function BookingModal({ firma, preselectedService, preselectedQty, onClos
     return groups;
   }, [firma?.services]);
 
-  /* Only show groups that have at least 1 available (price > 0) service */
+  /* Show all groups that have at least 1 service (active or passive);
+     active = price > 0, passive = shown greyed-out but still visible */
   const orderedGroups = useMemo(() => {
     const order = [...SERVICE_GROUPS, "Diğer"] as string[];
-    return order.filter(g => servicesByGroup[g]?.some(s => parsePrice(s.price) > 0));
+    return order.filter(g => (servicesByGroup[g]?.length ?? 0) > 0);
   }, [servicesByGroup]);
 
   /* Groups start CLOSED; groups containing selected services auto-open */
@@ -495,12 +496,19 @@ export function BookingModal({ firma, preselectedService, preselectedQty, onClos
                                               </div>
                                               <div className="text-right flex-shrink-0 ml-2">
                                                 {available ? (
-                                                  <>
-                                                    <span className={`font-bold text-sm ${isChecked ? "text-primary" : "text-foreground"}`}>
-                                                      {svc.price} TL
+                                                  user ? (
+                                                    <>
+                                                      <span className={`font-bold text-sm ${isChecked ? "text-primary" : "text-foreground"}`}>
+                                                        {svc.price} TL
+                                                      </span>
+                                                      <p className="text-[11px] text-muted-foreground">{svc.unit}</p>
+                                                    </>
+                                                  ) : (
+                                                    <span className="inline-flex flex-col items-end gap-0.5">
+                                                      <Lock className="w-4 h-4 text-muted-foreground" />
+                                                      <span className="text-[10px] text-muted-foreground leading-tight">Giriş yapın</span>
                                                     </span>
-                                                    <p className="text-[11px] text-muted-foreground">{svc.unit}</p>
-                                                  </>
+                                                  )
                                                 ) : (
                                                   <span className="text-xs text-muted-foreground italic">—</span>
                                                 )}
@@ -722,8 +730,8 @@ export function BookingModal({ firma, preselectedService, preselectedQty, onClos
 
                   {/* ── Footer: price summary + CTA ── */}
                   <div className="px-5 py-4 border-t border-border bg-white flex-shrink-0 space-y-3">
-                    {/* Price breakdown — per service + totals */}
-                    {base > 0 && (
+                    {/* Price breakdown — only visible to logged-in users */}
+                    {user && base > 0 && (
                       <div className="space-y-1.5 text-xs px-0.5">
                         {breakdown.map(line => (
                           <div key={line.name} className="flex justify-between text-muted-foreground">
@@ -798,6 +806,16 @@ export function BookingModal({ firma, preselectedService, preselectedQty, onClos
                             <span>{fidanSayisi} adet</span>
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {/* Fiyat kilidi — giriş yapmamış kullanıcı, hizmet seçmiş */}
+                    {!user && checkedNames.size > 0 && (
+                      <div className="flex items-center gap-2.5 bg-secondary/60 border border-border rounded-xl px-3 py-2.5">
+                        <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <p className="text-xs text-muted-foreground leading-snug">
+                          {checkedNames.size} hizmet seçildi · <span className="font-semibold text-foreground">Fiyatları görmek ve randevu almak için giriş yapın</span>
+                        </p>
                       </div>
                     )}
 
