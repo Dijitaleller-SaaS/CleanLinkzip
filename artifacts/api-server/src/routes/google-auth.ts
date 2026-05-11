@@ -8,6 +8,8 @@ const CLIENT_ID     = process.env.GOOGLE_CLIENT_ID!;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
 const CALLBACK_URL  = process.env.GOOGLE_CALLBACK_URL ?? "https://cleanlinktr.com/api/auth/google/callback";
 const APP_URL       = process.env.APP_URL ?? "https://cleanlinktr.com";
+const ADMIN_EMAIL   = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
+const ADMIN_EMAILS  = [ADMIN_EMAIL.toLowerCase(), "serkcel@gmail.com"];
 
 const router = Router();
 
@@ -99,7 +101,14 @@ router.get("/auth/google/callback", async (req, res) => {
       user = newUser;
     }
 
-    /* If user has a vendor profile but role is not firma, promote to firma.
+    /* Admin email override — always grant admin role for known admin addresses */
+    if (ADMIN_EMAILS.includes(user.email.toLowerCase()) && user.role !== "admin") {
+      await db.update(usersTable).set({ role: "admin" }).where(eq(usersTable.id, user.id));
+      user = { ...user, role: "admin" };
+      req.log.info({ userId: user.id, email: user.email }, "Google OAuth: promoted user to admin (ADMIN_EMAILS match)");
+    }
+
+    /* If user has a vendor profile but role is not firma/admin, promote to firma.
        This handles cases where a firm registered with email/password,
        then logs in with Google for the first time. */
     if (user.role !== "firma" && user.role !== "admin") {

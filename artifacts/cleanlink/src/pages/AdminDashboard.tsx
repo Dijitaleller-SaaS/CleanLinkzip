@@ -22,7 +22,7 @@ import {
   apiGetPageContent, apiUpdatePageContent,
   apiAdminGetPilotApplications, apiAdminDeletePilotApplication,
   apiAdminGetOrders, apiAdminUpdateOrderStatus,
-  apiAdminGetTransactionAuditLog,
+  apiAdminGetTransactionAuditLog, apiAdminDeleteUser,
   type AdminVendor, type AdminFinancial, type AdminNotifications, type CmsBlogPost, type PilotApplicationApi, type AdminOrder, type TransactionAuditLogEntry,
 } from "@/lib/api";
 
@@ -1345,6 +1345,25 @@ function GuvenlikTab() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
+  /* User deletion */
+  const [delUserId, setDelUserId] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [delMsg, setDelMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleDeleteUser = async () => {
+    const id = parseInt(delUserId.trim(), 10);
+    if (isNaN(id) || id < 1) { setDelMsg({ ok: false, text: "Geçerli bir kullanıcı ID girin" }); return; }
+    if (!window.confirm(`Kullanıcı #${id} kalıcı olarak silinecek. Emin misiniz?`)) return;
+    setDeleting(true); setDelMsg(null);
+    try {
+      const d = await apiAdminDeleteUser(id);
+      setDelMsg({ ok: true, text: `Silindi: ${d.email} (ID: ${d.id})` });
+      setDelUserId("");
+    } catch (e) {
+      setDelMsg({ ok: false, text: (e as Error).message });
+    } finally { setDeleting(false); }
+  };
+
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try { setLogs(await apiAdminGetTransactionAuditLog()); }
@@ -1367,6 +1386,42 @@ function GuvenlikTab() {
 
   return (
     <motion.div key="guvenlik" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+
+      {/* User Delete Panel */}
+      <div className="mb-6 p-4 rounded-2xl border border-rose-200 bg-rose-50">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center">
+            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-rose-700">Kullanıcı Sil</p>
+            <p className="text-[11px] text-rose-500">Kullanıcıyı ve firma profilini kalıcı olarak siler</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min={1}
+            value={delUserId}
+            onChange={e => setDelUserId(e.target.value)}
+            placeholder="Kullanıcı ID (örn: 3)"
+            className="flex-1 px-3 py-2 text-sm border border-rose-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
+          />
+          <button
+            onClick={handleDeleteUser}
+            disabled={deleting || !delUserId}
+            className="px-4 py-2 text-sm font-semibold bg-rose-600 text-white rounded-xl hover:bg-rose-700 disabled:opacity-50 transition-colors"
+          >
+            {deleting ? "Siliniyor…" : "Sil"}
+          </button>
+        </div>
+        {delMsg && (
+          <p className={`mt-2 text-xs font-medium ${delMsg.ok ? "text-teal-700" : "text-rose-700"}`}>
+            {delMsg.ok ? "✓ " : "✗ "}{delMsg.text}
+          </p>
+        )}
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2.5">

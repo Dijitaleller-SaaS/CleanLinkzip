@@ -597,4 +597,18 @@ router.patch("/admin/orders/:id/status", async (req, res) => {
   }
 });
 
+/* DELETE /admin/users/:userId — hard-delete a user and their vendor profile */
+router.delete("/admin/users/:userId", async (req, res) => {
+  const userId = parseInt(req.params.userId, 10);
+  if (isNaN(userId)) { res.status(400).json({ error: "Geçersiz kullanıcı ID" }); return; }
+  try {
+    await db.delete(vendorProfilesTable).where(eq(vendorProfilesTable.userId, userId));
+    const [deleted] = await db.delete(usersTable).where(eq(usersTable.id, userId)).returning();
+    if (!deleted) { res.status(404).json({ error: "Kullanıcı bulunamadı" }); return; }
+    res.json({ ok: true, deleted: { id: deleted.id, email: deleted.email } });
+  } catch {
+    res.status(500).json({ error: "Kullanıcı silinirken hata oluştu" });
+  }
+});
+
 export default router;

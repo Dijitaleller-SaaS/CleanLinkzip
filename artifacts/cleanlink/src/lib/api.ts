@@ -222,6 +222,11 @@ export async function apiAdminDeletePilotApplication(id: number): Promise<void> 
   await request<{ ok: boolean }>("DELETE", `/admin/pilot-applications/${id}`, undefined, true);
 }
 
+export async function apiAdminDeleteUser(userId: number): Promise<{ id: number; email: string }> {
+  const data = await request<{ ok: boolean; deleted: { id: number; email: string } }>("DELETE", `/admin/users/${userId}`, undefined, true);
+  return data.deleted;
+}
+
 export async function apiAdminRemoveSubscription(vendorId: number): Promise<AdminVendor> {
   const data = await request<{ vendor: AdminVendor }>("DELETE", `/admin/vendors/${vendorId}/subscription`, {}, true);
   return data.vendor;

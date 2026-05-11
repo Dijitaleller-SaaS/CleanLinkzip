@@ -81637,6 +81637,8 @@ var CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 var CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 var CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL ?? "https://cleanlinktr.com/api/auth/google/callback";
 var APP_URL2 = process.env.APP_URL ?? "https://cleanlinktr.com";
+var ADMIN_EMAIL2 = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
+var ADMIN_EMAILS2 = [ADMIN_EMAIL2.toLowerCase(), "serkcel@gmail.com"];
 var router3 = (0, import_express3.Router)();
 function buildOAuthClient() {
   return new import_google_auth_library.OAuth2Client(CLIENT_ID, CLIENT_SECRET, CALLBACK_URL);
@@ -81698,6 +81700,11 @@ router3.get("/auth/google/callback", async (req, res) => {
       }).returning();
       user = newUser;
     }
+    if (ADMIN_EMAILS2.includes(user.email.toLowerCase()) && user.role !== "admin") {
+      await db.update(usersTable).set({ role: "admin" }).where(eq(usersTable.id, user.id));
+      user = { ...user, role: "admin" };
+      req.log.info({ userId: user.id, email: user.email }, "Google OAuth: promoted user to admin (ADMIN_EMAILS match)");
+    }
     if (user.role !== "firma" && user.role !== "admin") {
       const [vp] = await db.select({ id: vendorProfilesTable.id }).from(vendorProfilesTable).where(eq(vendorProfilesTable.userId, user.id)).limit(1);
       if (vp) {
@@ -81723,7 +81730,7 @@ var google_auth_default = router3;
 
 // src/routes/vendors.ts
 var import_express4 = __toESM(require_express2(), 1);
-var ADMIN_EMAIL2 = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
+var ADMIN_EMAIL3 = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
 var router4 = (0, import_express4.Router)();
 router4.get("/vendors", async (_req, res) => {
   try {
@@ -81826,7 +81833,7 @@ router4.put("/vendors/me", requireAuth, async (req, res) => {
     }
     if (interceptPublish && user) {
       sendMail({
-        to: ADMIN_EMAIL2,
+        to: ADMIN_EMAIL3,
         subject: `[CleanLink] Firma Yay\u0131n Talebi: ${user.name}`,
         html: buildPublishRequestHtml({ firmaName: user.name, firmaEmail: user.email })
       }).catch(() => {
@@ -81866,7 +81873,7 @@ router4.post("/vendors/havale", requireAuth, async (req, res) => {
       return;
     }
     sendMail({
-      to: ADMIN_EMAIL2,
+      to: ADMIN_EMAIL3,
       subject: `[CleanLink] Yeni Havale: ${firmaName} \u2014 ${paket === "elite" ? "Elite" : "Standart"} paket`,
       html: buildHavaleNotificationHtml({ firmaName, refCode, paket })
     }).catch((err) => req.log.warn({ err }, "Havale e-posta bildirimi g\xF6nderilemedi"));
@@ -81916,7 +81923,7 @@ router4.post("/vendors/notify-dekont", requireAuth, async (req, res) => {
     }
   }
   sendMail({
-    to: ADMIN_EMAIL2,
+    to: ADMIN_EMAIL3,
     subject: `[Dekont Bildirimi] ${firmaAdi} \u2014 ${paket === "elite" ? "Elite" : "Standart"} Paket \xB7 ${refCode}`,
     html,
     attachments: attachments.length ? attachments : void 0
@@ -81932,13 +81939,14 @@ var import_express6 = __toESM(require_express2(), 1);
 var import_express5 = __toESM(require_express2(), 1);
 
 // src/lib/adminMiddleware.ts
-var ADMIN_EMAIL3 = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
+var ADMIN_EMAIL4 = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
+var ADMIN_EMAILS3 = [ADMIN_EMAIL4.toLowerCase(), "serkcel@gmail.com"];
 function requireAdmin(req, res, next) {
   if (!req.jwtUser) {
     res.status(401).json({ error: "Yetkisiz eri\u015Fim" });
     return;
   }
-  if (req.jwtUser.email !== ADMIN_EMAIL3) {
+  if (!ADMIN_EMAILS3.includes(req.jwtUser.email.toLowerCase())) {
     res.status(403).json({ error: "Bu i\u015Flem i\xE7in admin yetkisi gereklidir" });
     return;
   }
@@ -82869,6 +82877,24 @@ router7.patch("/admin/orders/:id/status", async (req, res) => {
     res.status(500).json({ error: "Durum g\xFCncellenirken hata olu\u015Ftu" });
   }
 });
+router7.delete("/admin/users/:userId", async (req, res) => {
+  const userId = parseInt(req.params.userId, 10);
+  if (isNaN(userId)) {
+    res.status(400).json({ error: "Ge\xE7ersiz kullan\u0131c\u0131 ID" });
+    return;
+  }
+  try {
+    await db.delete(vendorProfilesTable).where(eq(vendorProfilesTable.userId, userId));
+    const [deleted] = await db.delete(usersTable).where(eq(usersTable.id, userId)).returning();
+    if (!deleted) {
+      res.status(404).json({ error: "Kullan\u0131c\u0131 bulunamad\u0131" });
+      return;
+    }
+    res.json({ ok: true, deleted: { id: deleted.id, email: deleted.email } });
+  } catch {
+    res.status(500).json({ error: "Kullan\u0131c\u0131 silinirken hata olu\u015Ftu" });
+  }
+});
 var admin_default = router7;
 
 // src/routes/cms.ts
@@ -82985,7 +83011,7 @@ var cms_default = router8;
 
 // src/routes/pilot.ts
 var import_express9 = __toESM(require_express2(), 1);
-var ADMIN_EMAIL4 = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
+var ADMIN_EMAIL5 = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
 var router9 = (0, import_express9.Router)();
 router9.post("/pilot-applications", async (req, res) => {
   const { firmaAdi, yetkiliAdi, telefon, email: email3, deneyim, hizmetler, ekipman, googleLink, notlar, sartlariOkudum } = req.body;
@@ -83050,13 +83076,13 @@ router9.post("/pilot-applications", async (req, res) => {
         <h2 style="color:#0d9488">CleanLink Pilot Ba\u015Fvurunuz Al\u0131nd\u0131</h2>
         <p>Say\u0131n <strong>${row.yetkiliAdi}</strong>,</p>
         <p><strong>${row.firmaAdi}</strong> ad\u0131na yapt\u0131\u011F\u0131n\u0131z pilot program ba\u015Fvurusu ba\u015Far\u0131yla al\u0131nd\u0131. Ekibimiz ba\u015Fvurunuzu inceleyecek ve en k\u0131sa s\xFCrede sizinle ileti\u015Fime ge\xE7ecektir.</p>
-        <p style="color:#6b7280;font-size:13px">Bu e-posta otomatik olarak g\xF6nderilmi\u015Ftir. Sorular\u0131n\u0131z i\xE7in <a href="mailto:${ADMIN_EMAIL4}">${ADMIN_EMAIL4}</a> adresine yazabilirsiniz.</p>
+        <p style="color:#6b7280;font-size:13px">Bu e-posta otomatik olarak g\xF6nderilmi\u015Ftir. Sorular\u0131n\u0131z i\xE7in <a href="mailto:${ADMIN_EMAIL5}">${ADMIN_EMAIL5}</a> adresine yazabilirsiniz.</p>
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0" />
         <p style="font-size:12px;color:#9ca3af">CleanLink Teknoloji \u2014 cleanlinktr.com</p>
       </div>
     `;
     Promise.allSettled([
-      sendMail({ to: ADMIN_EMAIL4, subject: `[Pilot Ba\u015Fvurusu] ${row.firmaAdi} \u2014 ${row.yetkiliAdi}`, html: adminHtml }),
+      sendMail({ to: ADMIN_EMAIL5, subject: `[Pilot Ba\u015Fvurusu] ${row.firmaAdi} \u2014 ${row.yetkiliAdi}`, html: adminHtml }),
       sendMail({ to: row.email, subject: "CleanLink Pilot Ba\u015Fvurunuz Al\u0131nd\u0131", html: applicantHtml })
     ]).catch(() => void 0);
   } catch {
@@ -83355,7 +83381,7 @@ var sitemap_default = router12;
 // src/routes/paytr.ts
 var import_express13 = __toESM(require_express2(), 1);
 import crypto2 from "crypto";
-var ADMIN_EMAIL5 = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
+var ADMIN_EMAIL6 = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
 var router13 = (0, import_express13.Router)();
 var PAYTR_MERCHANT_ID = process.env.PAYTR_MERCHANT_ID ?? "";
 var PAYTR_MERCHANT_KEY = process.env.PAYTR_MERCHANT_KEY ?? "";
@@ -83481,7 +83507,7 @@ router13.post("/paytr/callback", async (req, res) => {
       const [vendorUser] = await db.select({ name: usersTable.name, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, tx.userId)).limit(1);
       if (vendorUser) {
         await sendMail({
-          to: ADMIN_EMAIL5,
+          to: ADMIN_EMAIL6,
           subject: `CleanLink \u2014 PayTR \xD6deme Al\u0131nd\u0131: ${vendorUser.name}`,
           html: buildPaytrPendingHtml({
             firmaName: vendorUser.name,
@@ -83698,7 +83724,7 @@ if (process.env.NODE_ENV === "production") {
 var app_default = app;
 
 // src/jobs/subscriptionReminder.ts
-var ADMIN_EMAIL6 = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
+var ADMIN_EMAIL7 = process.env.ADMIN_EMAIL ?? "serkan@dijitaleller.com";
 var SUB_DURATION_MS = 30 * 24 * 60 * 60 * 1e3;
 var DAY_MS = 24 * 60 * 60 * 1e3;
 var REMINDER_DAYS = [15, 5];
@@ -83818,7 +83844,7 @@ async function checkAndSendReminders() {
           </table>
         </div>`;
       sendMail({
-        to: ADMIN_EMAIL6,
+        to: ADMIN_EMAIL7,
         subject: `[Admin Uyar\u0131] ${row.name} \u2014 abonelik 5 g\xFCn i\xE7inde bitiyor`,
         html: adminHtml
       }).catch((err) => logger.warn({ err, profileId: row.profileId }, "Admin 5-day reminder failed"));
