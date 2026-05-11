@@ -81698,6 +81698,14 @@ router3.get("/auth/google/callback", async (req, res) => {
       }).returning();
       user = newUser;
     }
+    if (user.role !== "firma" && user.role !== "admin") {
+      const [vp] = await db.select({ id: vendorProfilesTable.id }).from(vendorProfilesTable).where(eq(vendorProfilesTable.userId, user.id)).limit(1);
+      if (vp) {
+        await db.update(usersTable).set({ role: "firma" }).where(eq(usersTable.id, user.id));
+        user = { ...user, role: "firma" };
+        req.log.info({ userId: user.id, email: user.email }, "Google OAuth: promoted user to firma (has vendor profile)");
+      }
+    }
     const token = signToken({
       userId: user.id,
       email: user.email,

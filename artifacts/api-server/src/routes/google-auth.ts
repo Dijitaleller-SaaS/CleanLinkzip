@@ -99,6 +99,22 @@ router.get("/auth/google/callback", async (req, res) => {
       user = newUser;
     }
 
+    /* If user has a vendor profile but role is not firma, promote to firma.
+       This handles cases where a firm registered with email/password,
+       then logs in with Google for the first time. */
+    if (user.role !== "firma" && user.role !== "admin") {
+      const [vp] = await db
+        .select({ id: vendorProfilesTable.id })
+        .from(vendorProfilesTable)
+        .where(eq(vendorProfilesTable.userId, user.id))
+        .limit(1);
+      if (vp) {
+        await db.update(usersTable).set({ role: "firma" }).where(eq(usersTable.id, user.id));
+        user = { ...user, role: "firma" };
+        req.log.info({ userId: user.id, email: user.email }, "Google OAuth: promoted user to firma (has vendor profile)");
+      }
+    }
+
     const token = signToken({
       userId:       user.id,
       email:        user.email,

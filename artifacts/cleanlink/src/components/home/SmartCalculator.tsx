@@ -6,7 +6,7 @@ import {
   ChevronLeft, Star, Home, Sofa, Layers, Car, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useApp, loadFirmaProfile, TR_REGIONS, SERVICE_META, type ServiceKey } from "@/context/AppContext";
+import { useApp, TR_REGIONS, SERVICE_META, type ServiceKey } from "@/context/AppContext";
 import { BookingModal, BookingServiceItem } from "@/components/booking/BookingModal";
 import { FirmaProfilModal, FirmaData } from "@/components/firma/FirmaProfilModal";
 import { SprayCan } from "lucide-react";
@@ -218,14 +218,16 @@ export function SmartCalculator() {
   }
 
   function buildServicesForFirma(firmaName: string): BookingServiceItem[] {
-    const profile = loadFirmaProfile(firmaName);
+    const vendor = vendors.find(v => v.name === firmaName);
+    const prices: Partial<Record<string, number>> = vendor?.prices ?? {};
+    const serviceScopes: Partial<Record<string, string>> = vendor?.serviceScopes ?? {};
     return CATEGORIES.flatMap(cat =>
       cat.subs
         .filter(s => selectedSubs.has(s.id))
         .map(s => {
           const key = SUB_TO_KEY[s.id];
-          const rawPrice = key ? (profile.prices[key] ?? 0) : 0;
-          const liveScope = key ? (profile.serviceScopes[key] || s.scope) : s.scope;
+          const rawPrice = key ? (prices[key] ?? 0) : 0;
+          const liveScope = key ? (serviceScopes[key] || s.scope) : s.scope;
 
           if (s.id === "hali-std") {
             const pricePerM2 = rawPrice > 0 ? rawPrice : HALI_STD_PRICE;
