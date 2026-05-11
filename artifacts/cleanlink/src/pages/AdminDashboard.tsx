@@ -177,6 +177,16 @@ function FirmaTab() {
     finally { setBusy(null); }
   };
 
+  const handleDeleteFirma = async (v: AdminVendor) => {
+    if (!confirm(`"${v.name}" firması ve kullanıcı hesabı kalıcı olarak silinecek. Emin misiniz?`)) return;
+    setBusy(v.id);
+    try {
+      await apiAdminDeleteUserByEmail(v.email);
+      setVendors(vs => vs.filter(x => x.id !== v.id));
+    } catch (e) { alert((e as Error).message); }
+    finally { setBusy(null); }
+  };
+
   const handleSetPackage = async (id: number, updates: { isSubscribed?: boolean; isSponsor?: boolean }) => {
     setBusy(id);
     try {
@@ -338,6 +348,11 @@ function FirmaTab() {
                         Üyelik Kaldır
                       </button>
                     )}
+                    <button disabled={isBusy} onClick={() => handleDeleteFirma(v)}
+                      className="flex items-center gap-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-60 rounded-xl px-3 py-2 transition-colors">
+                      {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      Firmayı Sil
+                    </button>
                   </div>
 
                   {/* ── Master Test Paneli — yalnızca "Cleanlink Temizlik" profili için ── */}
@@ -1345,25 +1360,6 @@ function GuvenlikTab() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  /* User deletion */
-  const [delEmail, setDelEmail] = useState("");
-  const [deleting, setDeleting] = useState(false);
-  const [delMsg, setDelMsg] = useState<{ ok: boolean; text: string } | null>(null);
-
-  const handleDeleteUser = async () => {
-    const em = delEmail.trim();
-    if (!em || !em.includes("@")) { setDelMsg({ ok: false, text: "Geçerli bir e-posta adresi girin" }); return; }
-    if (!window.confirm(`"${em}" kullanıcısı ve tüm verileri kalıcı olarak silinecek. Emin misiniz?`)) return;
-    setDeleting(true); setDelMsg(null);
-    try {
-      const d = await apiAdminDeleteUserByEmail(em);
-      setDelMsg({ ok: true, text: `Silindi: ${d.email} (ID: ${d.id})` });
-      setDelEmail("");
-    } catch (e) {
-      setDelMsg({ ok: false, text: (e as Error).message });
-    } finally { setDeleting(false); }
-  };
-
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try { setLogs(await apiAdminGetTransactionAuditLog()); }
@@ -1386,40 +1382,6 @@ function GuvenlikTab() {
 
   return (
     <motion.div key="guvenlik" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-
-      {/* User Delete Panel */}
-      <div className="mb-6 p-4 rounded-2xl border border-rose-200 bg-rose-50">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center">
-            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-rose-700">Kullanıcı Sil</p>
-            <p className="text-[11px] text-rose-500">Kullanıcıyı ve firma profilini kalıcı olarak siler</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="email"
-            value={delEmail}
-            onChange={e => setDelEmail(e.target.value)}
-            placeholder="E-posta adresi (örn: kullanici@gmail.com)"
-            className="flex-1 px-3 py-2 text-sm border border-rose-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
-          />
-          <button
-            onClick={handleDeleteUser}
-            disabled={deleting || !delEmail}
-            className="px-4 py-2 text-sm font-semibold bg-rose-600 text-white rounded-xl hover:bg-rose-700 disabled:opacity-50 transition-colors"
-          >
-            {deleting ? "Siliniyor…" : "Sil"}
-          </button>
-        </div>
-        {delMsg && (
-          <p className={`mt-2 text-xs font-medium ${delMsg.ok ? "text-teal-700" : "text-rose-700"}`}>
-            {delMsg.ok ? "✓ " : "✗ "}{delMsg.text}
-          </p>
-        )}
-      </div>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
