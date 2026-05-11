@@ -82877,6 +82877,21 @@ router7.patch("/admin/orders/:id/status", async (req, res) => {
     res.status(500).json({ error: "Durum g\xFCncellenirken hata olu\u015Ftu" });
   }
 });
+router7.get("/admin/users", async (_req, res) => {
+  try {
+    const users = await db.select({
+      id: usersTable.id,
+      email: usersTable.email,
+      name: usersTable.name,
+      role: usersTable.role,
+      createdAt: usersTable.createdAt,
+      googleId: usersTable.googleId
+    }).from(usersTable).orderBy(desc(usersTable.createdAt));
+    res.json({ users });
+  } catch {
+    res.status(500).json({ error: "Kullan\u0131c\u0131lar y\xFCklenemedi" });
+  }
+});
 router7.delete("/admin/users/by-email", async (req, res) => {
   const { email: email3 } = req.body;
   if (!email3 || !email3.includes("@")) {

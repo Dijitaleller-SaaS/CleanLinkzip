@@ -232,6 +232,20 @@ export async function apiAdminDeleteUserByEmail(email: string): Promise<{ id: nu
   return data.deleted;
 }
 
+export interface AdminUser {
+  id: number;
+  email: string;
+  name: string;
+  role: string;
+  createdAt: string | null;
+  googleId: string | null;
+}
+
+export async function apiAdminGetUsers(): Promise<AdminUser[]> {
+  const data = await request<{ users: AdminUser[] }>("GET", "/admin/users", undefined, true);
+  return data.users;
+}
+
 export async function apiAdminRemoveSubscription(vendorId: number): Promise<AdminVendor> {
   const data = await request<{ vendor: AdminVendor }>("DELETE", `/admin/vendors/${vendorId}/subscription`, {}, true);
   return data.vendor;

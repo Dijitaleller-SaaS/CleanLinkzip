@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Building2, TrendingUp, FileText, Bell,
+  Building2, TrendingUp, FileText, Bell, Users,
   CheckCircle2, CalendarClock, EyeOff, Eye,
   LogOut, AlertTriangle, Clock, Crown, BadgeCheck,
   Plus, Trash2, Edit3, Save, X, BookOpen,
@@ -23,13 +23,14 @@ import {
   apiAdminGetPilotApplications, apiAdminDeletePilotApplication,
   apiAdminGetOrders, apiAdminUpdateOrderStatus,
   apiAdminGetTransactionAuditLog, apiAdminDeleteUser, apiAdminDeleteUserByEmail,
+  apiAdminGetUsers, type AdminUser,
   type AdminVendor, type AdminFinancial, type AdminNotifications, type CmsBlogPost, type PilotApplicationApi, type AdminOrder, type TransactionAuditLogEntry,
 } from "@/lib/api";
 
 /* ─────────────────────────────────────
    Types
 ──────────────────────────────────────*/
-type AdminTab = "firmalar" | "siparisler" | "finansal" | "cms" | "bildirimler" | "guvenlik";
+type AdminTab = "firmalar" | "kullanicilar" | "siparisler" | "finansal" | "cms" | "bildirimler" | "guvenlik";
 type CMSSubTab =
   | "blog"
   | "hakkimizda"
@@ -1354,6 +1355,105 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   order_iptal:      { label: "İptal Edildi",          color: "bg-rose-100 text-rose-700" },
 };
 
+function KullanicilarTab() {
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [deleting, setDeleting] = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { setUsers(await apiAdminGetUsers()); }
+    catch (e) { setError((e as Error).message); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async (u: AdminUser) => {
+    if (!confirm(`"${u.name}" (${u.email}) kalıcı olarak silinecek. Emin misiniz?`)) return;
+    setDeleting(u.id);
+    try {
+      await apiAdminDeleteUserByEmail(u.email);
+      setUsers(prev => prev.filter(x => x.id !== u.id));
+    } catch (e) { alert((e as Error).message); }
+    finally { setDeleting(null); }
+  };
+
+  const filtered = users.filter(u => {
+    const q = search.toLowerCase();
+    return !q || u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q);
+  });
+
+  const roleLabel = (r: string) => ({ admin: { label: "Admin", cls: "bg-violet-100 text-violet-700" }, firma: { label: "Firma", cls: "bg-teal-100 text-teal-700" }, musteri: { label: "Müşteri", cls: "bg-blue-100 text-blue-700" } }[r] ?? { label: r, cls: "bg-gray-100 text-gray-600" });
+
+  return (
+    <motion.div key="kullanicilar" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center">
+            <Users className="w-4 h-4 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-foreground">Kullanıcı Yönetimi</h2>
+            <p className="text-[11px] text-muted-foreground">Tüm kayıtlı kullanıcılar — müşteri, firma ve admin</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground bg-secondary px-2.5 py-1 rounded-lg">{filtered.length} kullanıcı</span>
+          <button onClick={load} className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:bg-primary/5 border border-primary/20 rounded-lg px-3 py-1.5 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" /> Yenile
+          </button>
+        </div>
+      </div>
+
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="İsim veya e-posta ile ara…"
+          className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" />
+      </div>
+
+      {loading && <div className="flex justify-center py-16"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>}
+      {error && <div className="text-center py-12 text-rose-600 text-sm">{error}</div>}
+      {!loading && !error && filtered.length === 0 && (
+        <div className="text-center py-16 text-muted-foreground text-sm">Kayıtlı kullanıcı bulunamadı</div>
+      )}
+
+      {!loading && !error && filtered.length > 0 && (
+        <div className="space-y-2">
+          {filtered.map(u => {
+            const rl = roleLabel(u.role);
+            const isBusy = deleting === u.id;
+            const date = u.createdAt ? new Date(u.createdAt).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+            return (
+              <div key={u.id} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-border hover:border-primary/20 transition-colors">
+                <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-bold text-slate-500">{u.name?.[0]?.toUpperCase() ?? "?"}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-foreground truncate">{u.name}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rl.cls}`}>{rl.label}</span>
+                    {u.googleId && <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Google</span>}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                </div>
+                <div className="text-[11px] text-muted-foreground hidden sm:block flex-shrink-0">{date}</div>
+                <button onClick={() => handleDelete(u)} disabled={isBusy || u.role === "admin"}
+                  title={u.role === "admin" ? "Admin silinemez" : "Kullanıcıyı sil"}
+                  className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-1.5 disabled:opacity-40 transition-colors flex-shrink-0">
+                  {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 function GuvenlikTab() {
   const [logs, setLogs] = useState<TransactionAuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1522,12 +1622,13 @@ export default function AdminDashboard() {
   }
 
   const navTabs: { key: AdminTab; label: string; icon: typeof Building2 }[] = [
-    { key: "firmalar",    label: "Firmalar",    icon: Building2 },
-    { key: "siparisler",  label: "Siparişler",  icon: ClipboardList },
-    { key: "finansal",    label: "Finansal",    icon: TrendingUp },
-    { key: "cms",         label: "CMS",         icon: FileText },
-    { key: "bildirimler", label: "Bildirimler", icon: Bell },
-    { key: "guvenlik",    label: "Güvenlik",    icon: ShieldAlert },
+    { key: "firmalar",      label: "Firmalar",      icon: Building2 },
+    { key: "kullanicilar",  label: "Kullanıcılar",  icon: Users },
+    { key: "siparisler",    label: "Siparişler",    icon: ClipboardList },
+    { key: "finansal",      label: "Finansal",      icon: TrendingUp },
+    { key: "cms",           label: "CMS",           icon: FileText },
+    { key: "bildirimler",   label: "Bildirimler",   icon: Bell },
+    { key: "guvenlik",      label: "Güvenlik",      icon: ShieldAlert },
   ];
 
   return (
@@ -1590,8 +1691,9 @@ export default function AdminDashboard() {
         <main className="flex-1 min-w-0">
           <AnimatePresence mode="wait">
             <motion.div key={tab}>
-              {tab === "firmalar"    && <FirmaTab />}
-              {tab === "siparisler"  && <SiparislerTab />}
+              {tab === "firmalar"      && <FirmaTab />}
+              {tab === "kullanicilar" && <KullanicilarTab />}
+              {tab === "siparisler"   && <SiparislerTab />}
               {tab === "finansal"    && <FinansalTab />}
               {tab === "cms"         && <CMSTab />}
               {tab === "bildirimler" && <BildirimlerTab />}

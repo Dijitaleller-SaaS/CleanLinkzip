@@ -597,6 +597,26 @@ router.patch("/admin/orders/:id/status", async (req, res) => {
   }
 });
 
+/* GET /admin/users — list all registered users */
+router.get("/admin/users", async (_req, res) => {
+  try {
+    const users = await db
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        name: usersTable.name,
+        role: usersTable.role,
+        createdAt: usersTable.createdAt,
+        googleId: usersTable.googleId,
+      })
+      .from(usersTable)
+      .orderBy(desc(usersTable.createdAt));
+    res.json({ users });
+  } catch {
+    res.status(500).json({ error: "Kullanıcılar yüklenemedi" });
+  }
+});
+
 /* DELETE /admin/users/by-email — hard-delete a user and their vendor profile by email */
 router.delete("/admin/users/by-email", async (req, res) => {
   const { email } = req.body as { email?: string };
