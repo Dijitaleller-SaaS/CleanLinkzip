@@ -6,4 +6,4 @@ Disallow: /firma-dashboard
 Disallow: /sifre-sifirla
 Disallow: /api/
 
-Sitemap: https://cleanlinktr.replit.app/api/sitemap.xml
+Sitemap: https://cleanlinktr.com/sitemap.xml
