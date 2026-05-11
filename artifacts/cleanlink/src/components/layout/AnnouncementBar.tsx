@@ -23,7 +23,7 @@ export function AnnouncementBar() {
 
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-[60] h-9 flex items-center px-4 overflow-hidden"
+      className="fixed top-0 left-0 right-0 z-40 h-9 flex items-center px-4 overflow-hidden"
       style={{ backgroundColor: current === "fidan" ? "#065F46" : "#1E3A5F" }}
     >
       <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-3">

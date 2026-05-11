@@ -338,143 +338,68 @@ export function SmartCalculator() {
                       className="overflow-hidden"
                     >
                       <div className="px-4 pb-4 border-t border-border/50 pt-3">
-                        {(cat.id === "ev" || cat.id === "koltuk" || cat.id === "hali" || cat.id === "arac") ? (() => {
-                          const CS: Record<string, { badge: string; icon: string; text: string; sel: string }> = {
-                            ev:     { badge: "bg-primary/5 border-primary/20",  icon: "text-primary",    text: "text-primary/80",  sel: "focus:border-primary hover:border-primary/40" },
-                            koltuk: { badge: "bg-violet-50 border-violet-200",  icon: "text-violet-600", text: "text-violet-700",  sel: "focus:border-violet-500 hover:border-violet-300" },
-                            hali:   { badge: "bg-amber-50 border-amber-200",    icon: "text-amber-600",  text: "text-amber-700",   sel: "focus:border-amber-500 hover:border-amber-300" },
-                            arac:   { badge: "bg-green-50 border-green-200",    icon: "text-green-600",  text: "text-green-700",   sel: "focus:border-green-500 hover:border-green-300" },
-                          };
-                          const cs = CS[cat.id] ?? CS.ev;
-                          const selSub = cat.subs.find(sub => selectedSubs.has(sub.id));
-                          return (
-                            <div>
-                              <div className="relative">
-                                <select
-                                  value={selSub?.id ?? ""}
-                                  onChange={e => {
-                                    const next = new Set(selectedSubs);
-                                    cat.subs.forEach(s => next.delete(s.id));
-                                    if (e.target.value) next.add(e.target.value);
-                                    setSelectedSubs(next);
-                                    if (e.target.value !== "hali-std") setHaliM2("");
+                        <div className="space-y-2">
+                          {cat.subs.map(sub => {
+                            const checked = selectedSubs.has(sub.id);
+                            return (
+                              <div key={sub.id} className="space-y-2">
+                                <button
+                                  onClick={() => {
+                                    toggleSub(sub.id);
+                                    if (sub.id === "hali-std" && checked) setHaliM2("");
                                   }}
-                                  className={`w-full appearance-none bg-white border-2 border-border rounded-xl px-4 py-3 pr-10 text-sm font-medium text-foreground outline-none cursor-pointer transition-colors min-h-[44px] ${cs.sel}`}
+                                  className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                                    checked
+                                      ? `${cat.border} ${cat.bg}`
+                                      : "border-border hover:border-border/60 hover:bg-gray-50"
+                                  }`}
                                 >
-                                  <option value="">— Hizmet türünü seçin —</option>
-                                  {cat.subs.map(sub => (
-                                    <option key={sub.id} value={sub.id}>{sub.name}</option>
-                                  ))}
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                              </div>
-                              {selSub && (
-                                selSub.hasM2 ? (
-                                  /* Makine Halısı — m² girişi */
-                                  <motion.div
-                                    initial={{ opacity: 0, y: -4 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="mt-2 bg-amber-50 border-2 border-amber-300 rounded-xl p-3"
-                                  >
-                                    <p className="text-xs font-medium text-amber-700 mb-2">Kaç m² halınız var?</p>
-                                    <div className="flex items-center gap-3">
-                                      <div className="relative flex-1">
-                                        <input
-                                          type="number" min="1" placeholder="0"
-                                          value={haliM2}
-                                          onClick={e => e.stopPropagation()}
-                                          onChange={e => setHaliM2(e.target.value)}
-                                          className="w-full bg-white border-2 border-amber-200 rounded-lg px-3 py-2 text-sm font-medium text-foreground outline-none focus:border-amber-500 transition-colors"
-                                        />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">m²</span>
-                                      </div>
-                                      {parsedHaliM2 > 0 && (
-                                        <div className="text-right flex-shrink-0">
-                                          <p className="text-lg font-bold text-amber-700">{haliTotal.toLocaleString("tr-TR")} TL</p>
-                                          <p className="text-[10px] text-amber-600">{parsedHaliM2} m² × {HALI_STD_PRICE} TL</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </motion.div>
-                                ) : (
-                                  /* Kapsam açıklama rozeti */
-                                  <motion.div
-                                    initial={{ opacity: 0, y: -4 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className={`mt-2 flex items-start gap-2 p-3 rounded-xl border ${cs.badge}`}
-                                  >
-                                    <Check className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${cs.icon}`} />
-                                    <p className={`text-xs leading-relaxed ${cs.text}`}>{selSub.scope}</p>
-                                  </motion.div>
-                                )
-                              )}
-                            </div>
-                          );
-                        })() : (
-                          /* Diğer kategoriler — onay kutusu listesi */
-                          <div className="space-y-2">
-                            {cat.subs.map(sub => {
-                              const checked = selectedSubs.has(sub.id);
-                              return (
-                                <div key={sub.id} className="space-y-2">
-                                  <button
-                                    onClick={() => {
-                                      toggleSub(sub.id);
-                                      if (sub.id === "hali-std" && checked) setHaliM2("");
-                                    }}
-                                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                                      checked
-                                        ? `${cat.border} ${cat.bg}`
-                                        : "border-border hover:border-border/60 hover:bg-gray-50"
-                                    }`}
-                                  >
-                                    <CheckBox checked={checked} />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium text-sm text-foreground">{sub.name}</p>
-                                      <p className="text-xs text-muted-foreground">{sub.scope}</p>
-                                    </div>
-                                    {sub.hasM2 && (
-                                      <span className="text-xs font-semibold text-amber-600 whitespace-nowrap">
-                                        {HALI_STD_PRICE} TL / m²
-                                      </span>
-                                    )}
-                                  </button>
-
-                                  {sub.hasM2 && checked && (
-                                    <motion.div
-                                      initial={{ opacity: 0, height: 0 }}
-                                      animate={{ opacity: 1, height: "auto" }}
-                                      exit={{ opacity: 0, height: 0 }}
-                                      className="overflow-hidden"
-                                    >
-                                      <div className="ml-8 bg-amber-50 border-2 border-amber-300 rounded-xl p-3">
-                                        <p className="text-xs font-medium text-amber-700 mb-2">Kaç m² halınız var?</p>
-                                        <div className="flex items-center gap-3">
-                                          <div className="relative flex-1">
-                                            <input
-                                              type="number" min="1" placeholder="0"
-                                              value={haliM2}
-                                              onClick={e => e.stopPropagation()}
-                                              onChange={e => setHaliM2(e.target.value)}
-                                              className="w-full bg-white border-2 border-amber-200 rounded-lg px-3 py-2 text-sm font-medium text-foreground outline-none focus:border-amber-500 transition-colors"
-                                            />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">m²</span>
-                                          </div>
-                                          {parsedHaliM2 > 0 && (
-                                            <div className="text-right flex-shrink-0">
-                                              <p className="text-lg font-bold text-amber-700">{haliTotal.toLocaleString("tr-TR")} TL</p>
-                                              <p className="text-[10px] text-amber-600">{parsedHaliM2} m² × {HALI_STD_PRICE} TL</p>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </motion.div>
+                                  <CheckBox checked={checked} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm text-foreground">{sub.name}</p>
+                                    <p className="text-xs text-muted-foreground">{sub.scope}</p>
+                                  </div>
+                                  {sub.hasM2 && (
+                                    <span className="text-xs font-semibold text-amber-600 whitespace-nowrap">
+                                      {HALI_STD_PRICE} TL / m²
+                                    </span>
                                   )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                                </button>
+
+                                {sub.hasM2 && checked && (
+                                  <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="overflow-hidden"
+                                  >
+                                    <div className="ml-8 bg-amber-50 border-2 border-amber-300 rounded-xl p-3">
+                                      <p className="text-xs font-medium text-amber-700 mb-2">Kaç m² halınız var?</p>
+                                      <div className="flex items-center gap-3">
+                                        <div className="relative flex-1">
+                                          <input
+                                            type="number" min="1" placeholder="0"
+                                            value={haliM2}
+                                            onClick={e => e.stopPropagation()}
+                                            onChange={e => setHaliM2(e.target.value)}
+                                            className="w-full bg-white border-2 border-amber-200 rounded-lg px-3 py-2 text-sm font-medium text-foreground outline-none focus:border-amber-500 transition-colors"
+                                          />
+                                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">m²</span>
+                                        </div>
+                                        {parsedHaliM2 > 0 && (
+                                          <div className="text-right flex-shrink-0">
+                                            <p className="text-lg font-bold text-amber-700">{haliTotal.toLocaleString("tr-TR")} TL</p>
+                                            <p className="text-[10px] text-amber-600">{parsedHaliM2} m² × {HALI_STD_PRICE} TL</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </motion.div>
                   )}

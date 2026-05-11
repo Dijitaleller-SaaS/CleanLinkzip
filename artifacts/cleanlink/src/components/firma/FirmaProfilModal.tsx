@@ -433,14 +433,14 @@ export function FirmaProfilModal({ firma, onClose }: Props) {
           <>
             {/* backdrop */}
             <motion.div key="fp-bd" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" onClick={onClose} />
+              className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
             {/* modal */}
             <motion.div key="fp-mod"
               initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.97 }}
               transition={{ type: "spring", stiffness: 280, damping: 26 }}
-              className="fixed inset-0 z-[61] flex items-end sm:items-center justify-center pointer-events-none"
+              className="fixed inset-0 z-[71] flex items-end sm:items-center justify-center pointer-events-none"
             >
               <div className="bg-white w-full max-w-2xl sm:rounded-3xl rounded-t-3xl shadow-2xl max-h-[95vh] flex flex-col pointer-events-auto overflow-hidden relative">
 

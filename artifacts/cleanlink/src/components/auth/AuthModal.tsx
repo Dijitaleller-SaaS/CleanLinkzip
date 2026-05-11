@@ -98,7 +98,7 @@ export function AuthModal() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm"
             onClick={handleClose}
           />
 
@@ -108,7 +108,7 @@ export function AuthModal() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-none"
+            className="fixed inset-0 z-[81] flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-none"
           >
             <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md pointer-events-auto overflow-hidden max-h-[92vh] overflow-y-auto">
 

@@ -72,7 +72,7 @@ function CustomerOrdersPanel() {
           <motion.div
             key="cop-bd"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[65] bg-black/50 backdrop-blur-sm"
             onClick={() => setShowMyOrders(false)}
           />
           <motion.div
@@ -80,7 +80,7 @@ function CustomerOrdersPanel() {
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
             onAnimationStart={handleOpen}
-            className="fixed right-0 top-0 bottom-0 z-[61] bg-white w-full max-w-sm shadow-2xl flex flex-col"
+            className="fixed right-0 top-0 bottom-0 z-[66] bg-white w-full max-w-sm shadow-2xl flex flex-col"
           >
             {/* ── Header ── */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
