@@ -245,6 +245,20 @@ export const paytrTransactionsTable = pgTable("paytr_transactions", {
 });
 export type PaytrTransaction = typeof paytrTransactionsTable.$inferSelect;
 
+/* ── Consent Logs (kullanıcı sözleşme onayları) ── */
+export const consentLogsTable = pgTable("consent_logs", {
+  id:                  serial("id").primaryKey(),
+  userId:              integer("user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  email:               varchar("email", { length: 255 }).notNull().default(""),
+  consentTerms:        boolean("consent_terms").notNull().default(false),
+  consentKvkk:         boolean("consent_kvkk").notNull().default(false),
+  agreementVersion:    varchar("agreement_version", { length: 20 }).notNull().default("1.0"),
+  ipAddress:           varchar("ip_address", { length: 64 }).notNull().default(""),
+  userAgent:           text("user_agent").notNull().default(""),
+  createdAt:           timestamp("created_at").defaultNow().notNull(),
+});
+export type ConsentLog = typeof consentLogsTable.$inferSelect;
+
 /* ── Notifications (in-app) ── */
 export const notificationsTable = pgTable("notifications", {
   id:        serial("id").primaryKey(),

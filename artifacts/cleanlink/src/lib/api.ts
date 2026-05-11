@@ -52,8 +52,10 @@ export async function apiRegister(
   name: string,
   password: string,
   role: "musteri" | "firma",
+  consentTerms: boolean,
+  consentKvkk: boolean,
 ): Promise<AuthResponse> {
-  const data = await request<AuthResponse>("POST", "/auth/register", { email, name, password, role });
+  const data = await request<AuthResponse>("POST", "/auth/register", { email, name, password, role, consentTerms, consentKvkk });
   setToken(data.token);
   return data;
 }

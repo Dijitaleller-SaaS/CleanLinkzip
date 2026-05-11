@@ -69562,6 +69562,7 @@ __export(schema_exports, {
   bayiVendorAssignmentsTable: () => bayiVendorAssignmentsTable,
   cmsBlogPostsTable: () => cmsBlogPostsTable,
   cmsPageContentTable: () => cmsPageContentTable,
+  consentLogsTable: () => consentLogsTable,
   couponsTable: () => couponsTable,
   insertCouponSchema: () => insertCouponSchema,
   insertOrderSchema: () => insertOrderSchema,
@@ -81163,6 +81164,17 @@ var paytrTransactionsTable = pgTable("paytr_transactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at")
 });
+var consentLogsTable = pgTable("consent_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  email: varchar("email", { length: 255 }).notNull().default(""),
+  consentTerms: boolean("consent_terms").notNull().default(false),
+  consentKvkk: boolean("consent_kvkk").notNull().default(false),
+  agreementVersion: varchar("agreement_version", { length: 20 }).notNull().default("1.0"),
+  ipAddress: varchar("ip_address", { length: 64 }).notNull().default(""),
+  userAgent: text("user_agent").notNull().default(""),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
 var notificationsTable = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
@@ -81467,13 +81479,17 @@ var registerLimiter = rate_limit_default({
   message: { error: "\xC7ok fazla kay\u0131t denemesi. 1 saat sonra tekrar deneyin." }
 });
 router2.post("/auth/register", registerLimiter, async (req, res) => {
-  const { email: email3, name, password, role } = req.body;
+  const { email: email3, name, password, role, consentTerms, consentKvkk } = req.body;
   if (!email3 || !name || !password) {
     res.status(400).json({ error: "E-posta, isim ve \u015Fifre zorunludur" });
     return;
   }
   if (password.length < 6) {
     res.status(400).json({ error: "\u015Eifre en az 6 karakter olmal\u0131d\u0131r" });
+    return;
+  }
+  if (!consentTerms || !consentKvkk) {
+    res.status(400).json({ error: "Kullan\u0131c\u0131 S\xF6zle\u015Fmesi ve KVKK onaylar\u0131 zorunludur" });
     return;
   }
   const userRole = isAdminEmail(email3) ? "admin" : role === "firma" ? "firma" : "musteri";
@@ -81501,6 +81517,16 @@ router2.post("/auth/register", registerLimiter, async (req, res) => {
         isPublished: false
       });
     }
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
+    await db.insert(consentLogsTable).values({
+      userId: user.id,
+      email: user.email,
+      consentTerms: true,
+      consentKvkk: true,
+      agreementVersion: "1.0",
+      ipAddress: ip,
+      userAgent: (req.headers["user-agent"] ?? "").slice(0, 500)
+    });
     const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role, tokenVersion: user.tokenVersion });
     if (userRole === "firma") {
       sendMail({

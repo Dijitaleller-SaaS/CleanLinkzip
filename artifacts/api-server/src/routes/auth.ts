@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
-import { db, usersTable, vendorProfilesTable, passwordResetTokensTable } from "@workspace/db";
+import { db, usersTable, vendorProfilesTable, passwordResetTokensTable, consentLogsTable } from "@workspace/db";
 import { eq, lt, sql } from "drizzle-orm";
 import { signToken } from "../lib/jwt";
 import { requireAuth, type AuthRequest } from "../lib/authMiddleware";
@@ -43,11 +43,13 @@ const registerLimiter = rateLimit({
 
 /* POST /api/auth/register */
 router.post("/auth/register", registerLimiter, async (req, res) => {
-  const { email, name, password, role } = req.body as {
+  const { email, name, password, role, consentTerms, consentKvkk } = req.body as {
     email?: string;
     name?: string;
     password?: string;
     role?: string;
+    consentTerms?: boolean;
+    consentKvkk?: boolean;
   };
 
   if (!email || !name || !password) {
@@ -56,6 +58,10 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
   }
   if (password.length < 6) {
     res.status(400).json({ error: "Şifre en az 6 karakter olmalıdır" });
+    return;
+  }
+  if (!consentTerms || !consentKvkk) {
+    res.status(400).json({ error: "Kullanıcı Sözleşmesi ve KVKK onayları zorunludur" });
     return;
   }
 
@@ -108,6 +114,20 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
         isPublished:         false,
       });
     }
+
+    /* Consent log — sözleşme onayı dijital mühür */
+    const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim()
+      || req.socket.remoteAddress
+      || "";
+    await db.insert(consentLogsTable).values({
+      userId:           user.id,
+      email:            user.email,
+      consentTerms:     true,
+      consentKvkk:      true,
+      agreementVersion: "1.0",
+      ipAddress:        ip,
+      userAgent:        (req.headers["user-agent"] ?? "").slice(0, 500),
+    });
 
     const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role, tokenVersion: user.tokenVersion });
 
