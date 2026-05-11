@@ -1,44 +1,54 @@
-import { useState, useEffect } from "react";
 import { useSEO } from "@/hooks/useSEO";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ScrollText } from "lucide-react";
-import { apiGetPageContent } from "@/lib/api";
 
-const DEFAULT: Record<string, string> = {
-  sonGuncelleme: "1 Ocak 2026",
-  uyari: "Bu belge taslak niteliğinde olup hukuki bağlayıcılığı bulunmamaktadır. Yayın öncesinde bir hukuk danışmanına onaylatılmalıdır.",
-  s1: "Bu Kullanım Koşulları (\"Koşullar\"), CleanLink Teknoloji A.Ş. (\"CleanLink\", \"biz\") ile CleanLink platformunu kullanan bireyler ve kurumlar (\"Kullanıcı\", \"siz\") arasındaki ilişkiyi düzenler. Platforma erişim sağlayarak bu Koşulları kabul etmiş sayılırsınız.",
-  s2: "CleanLink, temizlik hizmet sağlayıcılarını (\"Firma\") müşterilerle (\"Müşteri\") buluşturan çevrimiçi bir pazar yeridir. CleanLink, söz konusu hizmetlerin doğrudan sağlayıcısı değildir; yalnızca aracılık hizmeti sunar. Firmalar bağımsız üçüncü taraflardır.",
-  s3: "Platforma üye olmak için 18 yaşını doldurmuş olmanız gerekmektedir. Hesap bilgilerinizin gizliliğini ve güvenliğini sağlamak sizin sorumluluğunuzdadır. Hesabınızdan gerçekleştirilen tüm faaliyetlerden siz sorumlusunuzdur. Şüpheli bir durum fark ettiğinizde derhal destek@cleanlink.com.tr adresine bildirmelisiniz.",
-  s4: "PİLOT DÖNEM ÖDEME: CleanLink şu anda pilot aşamasındadır. Müşteri ödemeleri hizmet tamamlandıktan sonra doğrudan hizmet sağlayıcı firmaya yapılır; CleanLink müşteri ödemelerinde aracılık etmez ve komisyon tahsil etmez. Online ödeme ve 3 taksit altyapısı yakında devreye alınacaktır. Firma abonelik ödemeleri (Standart/Elite paket) Havale/EFT veya online ödeme sağlayıcısı (PayTR) üzerinden yapılır. Randevu onaylandıktan sonra 24 saat içinde ücretsiz iptal yapılabilir.",
-  s5: "Platformu yasa dışı amaçlarla kullanmak, sahte yorum yazmak, başka kullanıcıların bilgilerini izinsiz toplamak, sistemi aşırı yükleyecek işlemler gerçekleştirmek, firmalar veya müşterilerle platforma zarar verecek faaliyetlerde bulunmak kesinlikle yasaktır. Bu tür ihlaller hesabın askıya alınmasıyla sonuçlanabilir.",
-  s6: "CleanLink, firmalar tarafından sunulan hizmetlerin kalitesinden doğrudan sorumlu değildir. Ancak oluşabilecek uyuşmazlıklarda arabuluculuk hizmeti sunmak için çaba gösterir. CleanLink'in herhangi bir ihmal veya hata nedeniyle sorumluluğu, ilgili işlem bedeliyle sınırlıdır.",
-  s7: "CleanLink platformu, tasarımı, logosu, içerikleri ve yazılımı CleanLink Teknoloji A.Ş.'nin münhasır mülkiyetindedir ve Türkiye Cumhuriyeti fikri mülkiyet mevzuatıyla korunmaktadır. İzinsiz çoğaltma, dağıtma veya türev eser oluşturma yasaktır.",
-  s8: "CleanLink, bu Koşulları önceden bildirimde bulunmaksızın güncelleme hakkını saklı tutar. Güncellemeler yayınlandıktan sonra platformu kullanmaya devam etmeniz, yeni koşulları kabul ettiğiniz anlamına gelir. Önemli değişikliklerde kayıtlı e-posta adresinize bildirim yapılır.",
-  s9: "Bu Koşullar Türk hukukuna tabidir. Uyuşmazlıklarda İstanbul Mahkemeleri ve İcra Daireleri yetkilidir.",
-};
+const SECTIONS = [
+  {
+    title: "1. Taraflar ve Rol Tanımı",
+    text: `İşbu sözleşme, Cleanlinktr (Bundan sonra "Platform" olarak anılacaktır) ile Platform'a üye olan "Müşteri" ve "Firma/Hizmet Sağlayıcı" (Bundan sonra ortaklaşa "Kullanıcı" olarak anılacaktır) arasında akdedilmiştir.
 
-const SECTION_TITLES = [
-  "1. Taraflar ve Kapsam",
-  "2. Hizmetin Tanımı",
-  "3. Üyelik ve Hesap Güvenliği",
-  "4. Ödemeler ve İptal Politikası",
-  "5. Yasaklı Kullanımlar",
-  "6. Sorumluluk Sınırlaması",
-  "7. Fikri Mülkiyet",
-  "8. Koşulların Değiştirilmesi",
-  "9. Uygulanacak Hukuk",
+Cleanlinktr'nin Rolü: Cleanlinktr, hizmet alan ile hizmet vereni dijital ortamda buluşturan bir "Aracı Hizmet Sağlayıcı"dır. Cleanlinktr, taraflar arasında bir köprü vazifesi görür; ancak sunulan temizlik, bakım veya diğer hizmetlerin hiçbir aşamasında "işveren", "yüklenici", "temsilci" veya "garantör" sıfatına sahip değildir.`,
+  },
+  {
+    title: "2. Sorumluluk Sınırlandırılması (Mesuliyet Reddi)",
+    text: `Köprü Statüsü: Cleanlinktr, Müşteri ve Firma arasındaki ticari ilişkinin tarafı değildir. Hizmetin kalitesi, süresi, eksik ifası veya hiç ifa edilmemesi ile ilgili hiçbir sorumluluk Cleanlinktr'ye rücu edilemez.
+
+Eylem ve Davranışlar: Hizmetin ifası sırasında tarafların (Firma personeli veya Müşteri) birbirlerine karşı sergilediği her türlü tutum, davranış, sözlü veya fiziksel eylem, etik dışı hareket, ihmal veya kusurdan münhasıran ilgili taraf sorumludur. Cleanlinktr, tarafların şahsi davranışlarından doğacak hiçbir doğrudan veya dolaylı zarardan mesul tutulamaz.
+
+Maddi Hasarlar: Saha çalışması esnasında oluşabilecek hasar, kayıp, hırsızlık veya üçüncü şahıslara verilen zararlarda muhatap doğrudan hizmeti ifa eden Firmadır. Cleanlinktr bu süreçlerde arabulucu, hakim veya tazminat yükümlüsü değildir.`,
+  },
+  {
+    title: "3. Firmalar İçin İş Garantisi Reddi",
+    text: `Cleanlinktr, platforma kayıt olan Hizmet Sağlayıcılara (Firmalara) belirli bir iş hacmi, müşteri sayısı, süreklilik veya kazanç garantisi vermez.
+
+Platform, firmalara sadece potansiyel müşterilere ulaşma imkânı sunan bir teknolojik altyapıdır. Sistemsel güncellemeler veya pazar koşulları nedeniyle iş akışında yaşanabilecek değişimlerden Platform sorumlu değildir.`,
+  },
+  {
+    title: "4. Hakların Saklı Tutulması ve Değişiklik Yetkisi",
+    text: `Tek Taraflı Değişiklik: Cleanlinktr, işbu sözleşme maddelerini, kullanım şartlarını, komisyon oranlarını ve platformun işleyişini dilediği zaman, önceden ihbara gerek olmaksızın değiştirme hakkını saklı tutar.
+
+Platform Hakları: Platformun ismi, logosu, yazılımı, algoritması ve veri tabanı üzerindeki tüm fikri mülkiyet hakları Cleanlinktr'ye aittir. İzinsiz kullanımı halinde yasal işlem başlatılır.`,
+  },
+  {
+    title: "5. KVKK Aydınlatma Metni ve Veri Süreçleri",
+    text: `Veri İşleme: Kullanıcıların isim, iletişim ve adres bilgileri, sadece "Müşteri-Firma eşleşmesinin sağlanması" ve "Hizmetin ifası" amacıyla işlenir.
+
+Veri Aktarımı: Rezervasyon onaylandığında, hizmetin gerçekleşebilmesi için gerekli olan veriler karşılıklı olarak (Müşteri bilgisi Firmaya, Firma bilgisi Müşteriye) aktarılır. Kullanıcılar, bu aşamadan sonra verilerin karşı tarafça kullanımı veya korunması ile ilgili Cleanlinktr'nin bir denetim yükümlülüğü olmadığını kabul eder.
+
+Ticari İletişim: Kullanıcı, onay kutucuğunu işaretleyerek Cleanlinktr'den kampanya ve bilgilendirme iletileri almayı kabul etmiş sayılır.`,
+  },
+  {
+    title: "6. Cayma ve İptal Şartları",
+    text: `Hizmet iptalleri, Cleanlinktr tarafından belirlenen ve platformda ilan edilen süreler içinde yapılmalıdır. Belirlenen süreden sonra yapılan iptallerde hizmet bedelinin tamamı veya bir kısmı "rezervasyon iptal ücreti" olarak tahsil edilebilir.`,
+  },
+  {
+    title: "7. Yetkili Mahkeme",
+    text: `İşbu sözleşmeden doğacak uyuşmazlıklarda İstanbul (Çağlayan) Mahkemeleri ve İcra Daireleri münhasıran yetkilidir. Platform kayıtları, kesin ve bağlayıcı delil niteliğindedir.`,
+  },
 ];
 
 export default function KullanimKosullari() {
   useSEO({ title: "Kullanım Koşulları", canonical: "/kullanim-kosullari", noIndex: false });
-  const [content, setContent] = useState(DEFAULT);
-
-  useEffect(() => {
-    apiGetPageContent("kosullar")
-      .then(c => setContent(prev => ({ ...prev, ...c })))
-      .catch(() => {});
-  }, []);
 
   return (
     <PageLayout breadcrumbs={[{ label: "Kullanım Koşulları" }]}>
@@ -49,28 +59,22 @@ export default function KullanimKosullari() {
             <ScrollText className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">Kullanım Koşulları</h1>
-            <p className="text-sm text-muted-foreground mt-1">Son güncelleme: {content.sonGuncelleme}</p>
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">Kullanıcı Sözleşmesi</h1>
+            <p className="text-sm text-muted-foreground mt-1">Cleanlinktr Kullanıcı Sözleşmesi ve Hukuki Şartlar</p>
           </div>
         </div>
 
-        {content.uyari && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-10 text-sm text-amber-800">
-            {content.uyari}
-          </div>
-        )}
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-10 text-sm text-amber-800 leading-relaxed">
+          Bu belgeyi okuyup anladıktan sonra kayıt olabilirsiniz. Platforma üye olarak bu sözleşmenin tüm maddelerini kabul etmiş sayılırsınız.
+        </div>
 
         <div className="space-y-8 mb-16">
-          {SECTION_TITLES.map((title, i) => {
-            const key = `s${i + 1}`;
-            const text = content[key] ?? DEFAULT[key] ?? "";
-            return (
-              <div key={title} className="border-b border-border pb-8 last:border-0">
-                <h2 className="text-lg font-display font-semibold text-foreground mb-3">{title}</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{text}</p>
-              </div>
-            );
-          })}
+          {SECTIONS.map((s) => (
+            <div key={s.title} className="border-b border-border pb-8 last:border-0">
+              <h2 className="text-lg font-display font-semibold text-foreground mb-3">{s.title}</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{s.text}</p>
+            </div>
+          ))}
         </div>
 
       </div>

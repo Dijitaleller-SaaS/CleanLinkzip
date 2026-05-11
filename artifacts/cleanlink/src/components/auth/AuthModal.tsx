@@ -22,13 +22,14 @@ export function AuthModal() {
   const [name, setName]         = useState("");
   const [password, setPassword] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
-  const [showPw, setShowPw]     = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
+  const [showPw, setShowPw]         = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const reset = () => {
     setEmail(""); setName(""); setPassword(""); setForgotEmail("");
-    setError(""); setLoading(false); setStep("auth");
+    setError(""); setLoading(false); setStep("auth"); setAgreedToTerms(false);
   };
 
   const handleClose = () => { reset(); setShowAuthModal(false); };
@@ -41,6 +42,7 @@ export function AuthModal() {
     if (!email.trim() || !password.trim()) { setError("E-posta ve şifre zorunludur."); return; }
     if (authTab === "kayit" && !name.trim()) { setError("Lütfen adınızı girin."); return; }
     if (password.length < 6) { setError("Şifre en az 6 karakter olmalıdır."); return; }
+    if (authTab === "kayit" && !agreedToTerms) { setError("Devam etmek için kullanıcı sözleşmesini kabul etmeniz gerekmektedir."); return; }
 
     setLoading(true);
     try {
@@ -244,6 +246,20 @@ export function AuthModal() {
 
                         {error && (
                           <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>
+                        )}
+
+                        {authTab === "kayit" && (
+                          <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={agreedToTerms}
+                              onChange={e => setAgreedToTerms(e.target.checked)}
+                              className="mt-0.5 w-4 h-4 accent-teal-600 flex-shrink-0 cursor-pointer"
+                            />
+                            <span className="text-xs text-muted-foreground leading-relaxed">
+                              <Link href="/kullanim-kosullari" target="_blank" className="text-primary font-semibold hover:underline">Cleanlinktr Kullanıcı Sözleşmesi ve Aydınlatma Metni</Link>'ni okudum, anladım. Cleanlinktr'nin sadece bir aracı platform (köprü) olduğunu, hizmetin ifasından veya tarafların davranışlarından doğacak uyuşmazlıklarda Cleanlinktr'nin hiçbir hukuki ve cezai mesuliyeti bulunmadığını kabul, beyan ve taahhüt ederim.
+                            </span>
+                          </label>
                         )}
 
                         <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl font-bold text-base gap-2 shadow-lg shadow-primary/20 mt-1">
