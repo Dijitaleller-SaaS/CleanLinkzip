@@ -82877,6 +82877,25 @@ router7.patch("/admin/orders/:id/status", async (req, res) => {
     res.status(500).json({ error: "Durum g\xFCncellenirken hata olu\u015Ftu" });
   }
 });
+router7.delete("/admin/users/by-email", async (req, res) => {
+  const { email: email3 } = req.body;
+  if (!email3 || !email3.includes("@")) {
+    res.status(400).json({ error: "Ge\xE7erli bir e-posta girin" });
+    return;
+  }
+  try {
+    const [user] = await db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable).where(eq(usersTable.email, email3.toLowerCase().trim())).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "Bu e-posta ile kay\u0131tl\u0131 kullan\u0131c\u0131 bulunamad\u0131" });
+      return;
+    }
+    await db.delete(vendorProfilesTable).where(eq(vendorProfilesTable.userId, user.id));
+    await db.delete(usersTable).where(eq(usersTable.id, user.id));
+    res.json({ ok: true, deleted: { id: user.id, email: user.email } });
+  } catch {
+    res.status(500).json({ error: "Kullan\u0131c\u0131 silinirken hata olu\u015Ftu" });
+  }
+});
 router7.delete("/admin/users/:userId", async (req, res) => {
   const userId = parseInt(req.params.userId, 10);
   if (isNaN(userId)) {

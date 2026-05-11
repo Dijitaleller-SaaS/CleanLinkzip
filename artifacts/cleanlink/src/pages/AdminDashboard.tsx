@@ -22,7 +22,7 @@ import {
   apiGetPageContent, apiUpdatePageContent,
   apiAdminGetPilotApplications, apiAdminDeletePilotApplication,
   apiAdminGetOrders, apiAdminUpdateOrderStatus,
-  apiAdminGetTransactionAuditLog, apiAdminDeleteUser,
+  apiAdminGetTransactionAuditLog, apiAdminDeleteUser, apiAdminDeleteUserByEmail,
   type AdminVendor, type AdminFinancial, type AdminNotifications, type CmsBlogPost, type PilotApplicationApi, type AdminOrder, type TransactionAuditLogEntry,
 } from "@/lib/api";
 
@@ -1346,19 +1346,19 @@ function GuvenlikTab() {
   const [search, setSearch] = useState("");
 
   /* User deletion */
-  const [delUserId, setDelUserId] = useState("");
+  const [delEmail, setDelEmail] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [delMsg, setDelMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const handleDeleteUser = async () => {
-    const id = parseInt(delUserId.trim(), 10);
-    if (isNaN(id) || id < 1) { setDelMsg({ ok: false, text: "Geçerli bir kullanıcı ID girin" }); return; }
-    if (!window.confirm(`Kullanıcı #${id} kalıcı olarak silinecek. Emin misiniz?`)) return;
+    const em = delEmail.trim();
+    if (!em || !em.includes("@")) { setDelMsg({ ok: false, text: "Geçerli bir e-posta adresi girin" }); return; }
+    if (!window.confirm(`"${em}" kullanıcısı ve tüm verileri kalıcı olarak silinecek. Emin misiniz?`)) return;
     setDeleting(true); setDelMsg(null);
     try {
-      const d = await apiAdminDeleteUser(id);
+      const d = await apiAdminDeleteUserByEmail(em);
       setDelMsg({ ok: true, text: `Silindi: ${d.email} (ID: ${d.id})` });
-      setDelUserId("");
+      setDelEmail("");
     } catch (e) {
       setDelMsg({ ok: false, text: (e as Error).message });
     } finally { setDeleting(false); }
@@ -1400,16 +1400,15 @@ function GuvenlikTab() {
         </div>
         <div className="flex gap-2">
           <input
-            type="number"
-            min={1}
-            value={delUserId}
-            onChange={e => setDelUserId(e.target.value)}
-            placeholder="Kullanıcı ID (örn: 3)"
+            type="email"
+            value={delEmail}
+            onChange={e => setDelEmail(e.target.value)}
+            placeholder="E-posta adresi (örn: kullanici@gmail.com)"
             className="flex-1 px-3 py-2 text-sm border border-rose-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
           />
           <button
             onClick={handleDeleteUser}
-            disabled={deleting || !delUserId}
+            disabled={deleting || !delEmail}
             className="px-4 py-2 text-sm font-semibold bg-rose-600 text-white rounded-xl hover:bg-rose-700 disabled:opacity-50 transition-colors"
           >
             {deleting ? "Siliniyor…" : "Sil"}

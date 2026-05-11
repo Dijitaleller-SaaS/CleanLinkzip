@@ -597,7 +597,23 @@ router.patch("/admin/orders/:id/status", async (req, res) => {
   }
 });
 
-/* DELETE /admin/users/:userId — hard-delete a user and their vendor profile */
+/* DELETE /admin/users/by-email — hard-delete a user and their vendor profile by email */
+router.delete("/admin/users/by-email", async (req, res) => {
+  const { email } = req.body as { email?: string };
+  if (!email || !email.includes("@")) { res.status(400).json({ error: "Geçerli bir e-posta girin" }); return; }
+  try {
+    const [user] = await db.select({ id: usersTable.id, email: usersTable.email })
+      .from(usersTable).where(eq(usersTable.email, email.toLowerCase().trim())).limit(1);
+    if (!user) { res.status(404).json({ error: "Bu e-posta ile kayıtlı kullanıcı bulunamadı" }); return; }
+    await db.delete(vendorProfilesTable).where(eq(vendorProfilesTable.userId, user.id));
+    await db.delete(usersTable).where(eq(usersTable.id, user.id));
+    res.json({ ok: true, deleted: { id: user.id, email: user.email } });
+  } catch {
+    res.status(500).json({ error: "Kullanıcı silinirken hata oluştu" });
+  }
+});
+
+/* DELETE /admin/users/:userId — hard-delete a user and their vendor profile by ID */
 router.delete("/admin/users/:userId", async (req, res) => {
   const userId = parseInt(req.params.userId, 10);
   if (isNaN(userId)) { res.status(400).json({ error: "Geçersiz kullanıcı ID" }); return; }

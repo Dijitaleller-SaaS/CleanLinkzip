@@ -227,6 +227,11 @@ export async function apiAdminDeleteUser(userId: number): Promise<{ id: number; 
   return data.deleted;
 }
 
+export async function apiAdminDeleteUserByEmail(email: string): Promise<{ id: number; email: string }> {
+  const data = await request<{ ok: boolean; deleted: { id: number; email: string } }>("DELETE", `/admin/users/by-email`, { email }, true);
+  return data.deleted;
+}
+
 export async function apiAdminRemoveSubscription(vendorId: number): Promise<AdminVendor> {
   const data = await request<{ vendor: AdminVendor }>("DELETE", `/admin/vendors/${vendorId}/subscription`, {}, true);
   return data.vendor;
