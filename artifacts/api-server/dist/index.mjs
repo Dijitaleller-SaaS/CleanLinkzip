@@ -39179,6 +39179,31 @@ var require_jsonwebtoken = __commonJS({
   }
 });
 
+// src/lib/jwt.ts
+var jwt_exports = {};
+__export(jwt_exports, {
+  signToken: () => signToken,
+  verifyToken: () => verifyToken
+});
+function signToken(payload) {
+  return import_jsonwebtoken.default.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+}
+function verifyToken(token) {
+  return import_jsonwebtoken.default.verify(token, JWT_SECRET);
+}
+var import_jsonwebtoken, JWT_SECRET, JWT_EXPIRES;
+var init_jwt = __esm({
+  "src/lib/jwt.ts"() {
+    "use strict";
+    import_jsonwebtoken = __toESM(require_jsonwebtoken(), 1);
+    JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) {
+      throw new Error("JWT_SECRET environment variable must be set. Refusing to start with an insecure default.");
+    }
+    JWT_EXPIRES = "30d";
+  }
+});
+
 // ../../node_modules/.pnpm/extend@3.0.2/node_modules/extend/index.js
 var require_extend = __commonJS({
   "../../node_modules/.pnpm/extend@3.0.2/node_modules/extend/index.js"(exports, module) {
@@ -81196,21 +81221,11 @@ if (!process.env.DATABASE_URL) {
 var pool = new Pool3({ connectionString: process.env.DATABASE_URL });
 var db = drizzle(pool, { schema: schema_exports });
 
-// src/lib/jwt.ts
-var import_jsonwebtoken = __toESM(require_jsonwebtoken(), 1);
-var JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable must be set. Refusing to start with an insecure default.");
-}
-var JWT_EXPIRES = "30d";
-function signToken(payload) {
-  return import_jsonwebtoken.default.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
-}
-function verifyToken(token) {
-  return import_jsonwebtoken.default.verify(token, JWT_SECRET);
-}
+// src/routes/auth.ts
+init_jwt();
 
 // src/lib/authMiddleware.ts
+init_jwt();
 async function requireAuth(req, res, next) {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
@@ -81574,6 +81589,38 @@ router2.post("/auth/login", loginLimiter, async (req, res) => {
     res.status(500).json({ error: "Giri\u015F s\u0131ras\u0131nda hata olu\u015Ftu" });
   }
 });
+router2.post("/auth/consent", async (req, res) => {
+  const { token, consentTerms, consentKvkk } = req.body;
+  if (!token) {
+    res.status(400).json({ error: "Token zorunludur" });
+    return;
+  }
+  if (!consentTerms || !consentKvkk) {
+    res.status(400).json({ error: "Kullan\u0131c\u0131 S\xF6zle\u015Fmesi ve KVKK onaylar\u0131 zorunludur" });
+    return;
+  }
+  try {
+    const { verifyToken: verifyToken2 } = await Promise.resolve().then(() => (init_jwt(), jwt_exports));
+    const payload = verifyToken2(token);
+    if (!payload) {
+      res.status(401).json({ error: "Ge\xE7ersiz token" });
+      return;
+    }
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
+    await db.insert(consentLogsTable).values({
+      userId: payload.userId,
+      email: payload.email,
+      consentTerms: true,
+      consentKvkk: true,
+      agreementVersion: "1.0",
+      ipAddress: ip,
+      userAgent: (req.headers["user-agent"] ?? "").slice(0, 500)
+    });
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "Onay kaydedilirken hata olu\u015Ftu" });
+  }
+});
 router2.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
   const { email: email3 } = req.body;
   if (!email3) {
@@ -81659,6 +81706,7 @@ var auth_default = router2;
 // src/routes/google-auth.ts
 var import_express3 = __toESM(require_express2(), 1);
 var import_google_auth_library = __toESM(require_src5(), 1);
+init_jwt();
 var CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 var CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 var CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL ?? "https://cleanlinktr.com/api/auth/google/callback";
@@ -81711,6 +81759,7 @@ router3.get("/auth/google/callback", async (req, res) => {
     req.log.info({ email: email3, googleId }, "Google OAuth: user identified");
     const [existing] = await db.select().from(usersTable).where(or(eq(usersTable.googleId, googleId), eq(usersTable.email, email3.toLowerCase()))).limit(1);
     let user = existing;
+    let isNewUser = false;
     if (user) {
       if (!user.googleId) {
         await db.update(usersTable).set({ googleId }).where(eq(usersTable.id, user.id));
@@ -81725,6 +81774,7 @@ router3.get("/auth/google/callback", async (req, res) => {
         role: "musteri"
       }).returning();
       user = newUser;
+      isNewUser = true;
     }
     if (ADMIN_EMAILS2.includes(user.email.toLowerCase()) && user.role !== "admin") {
       await db.update(usersTable).set({ role: "admin" }).where(eq(usersTable.id, user.id));
@@ -81746,6 +81796,10 @@ router3.get("/auth/google/callback", async (req, res) => {
       role: user.role,
       tokenVersion: user.tokenVersion
     });
+    if (isNewUser) {
+      res.redirect(`${APP_URL2}/#google_token=${token}&needs_consent=true`);
+      return;
+    }
     res.redirect(`${APP_URL2}/#google_token=${token}`);
   } catch (err) {
     req.log.error({ err }, "Google OAuth callback error");

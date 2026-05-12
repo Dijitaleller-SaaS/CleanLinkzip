@@ -12,7 +12,7 @@ const stats = [
 ];
 
 const team = [
-  { name: "Serkan Çelebi",   role: "Kurucu",                   initials: "SÇ" },
+  { name: "Serkan Çelebi",   role: "Kurucu Ortak / CEO",       initials: "SÇ" },
   { name: "Emre Yunus Gün",  role: "Saha Satış Yöneticisi",   initials: "EG" },
 ];
 
