@@ -12,10 +12,8 @@ const stats = [
 ];
 
 const team = [
-  { name: "Ahmet Yılmaz",   role: "Kurucu & CEO",          initials: "AY" },
-  { name: "Selin Koç",      role: "Ürün Müdürü",           initials: "SK" },
-  { name: "Burak Demir",    role: "Teknoloji Direktörü",   initials: "BD" },
-  { name: "Zeynep Arslan",  role: "Müşteri Deneyimi",      initials: "ZA" },
+  { name: "Serkan Çelebi",   role: "Kurucu",                   initials: "SÇ" },
+  { name: "Emre Yunus Gün",  role: "Saha Satış Yöneticisi",   initials: "EG" },
 ];
 
 const DEFAULTS = {
