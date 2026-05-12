@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { apiMe, apiLogout, apiGetMyVendorProfile, apiUpdateVendorProfile, apiAdminApproveByName, apiAdminExtendByName, apiGetOrders, apiCreateOrder, apiUpdateOrderStatus, apiUnlockOrder, apiGetVendors, type AdminVendor, type OrderApi } from "@/lib/api";
+import { apiMe, apiLogout, apiGetMyVendorProfile, apiUpdateVendorProfile, apiAdminApproveByName, apiAdminExtendByName, apiGetOrders, apiCreateOrder, apiUpdateOrderStatus, apiUnlockOrder, apiGetVendors, apiSubmitGoogleConsent, type AdminVendor, type OrderApi } from "@/lib/api";
 
 export type UserType = "musteri" | "firma";
 export interface AppUser { type: UserType; name: string; email?: string; role?: string; }
@@ -225,6 +225,8 @@ interface AppContextValue {
   setShowAuthModal: (v: boolean) => void;
   authMode: UserType;
   setAuthMode: (m: UserType) => void;
+  pendingGoogleToken: string | null;
+  setPendingGoogleToken: (t: string | null) => void;
   showMyOrders: boolean;
   setShowMyOrders: (v: boolean) => void;
   logout: () => void;
@@ -299,9 +301,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const urlParams = new URLSearchParams(window.location.search);
     const googleError = urlParams.get("google_error");
     if (googleToken) {
-      localStorage.setItem("cleanlink_jwt", googleToken);
+      const needsConsent = hashParams.get("needs_consent") === "true";
       /* Clear the fragment immediately so the token is not in browser history */
       window.history.replaceState({}, "", window.location.pathname + window.location.search);
+      if (needsConsent) {
+        /* New Google user — must accept terms before token is saved */
+        setPendingGoogleToken(googleToken);
+        return;
+      }
+      localStorage.setItem("cleanlink_jwt", googleToken);
     } else if (googleError) {
       const clean = new URL(window.location.href);
       clean.searchParams.delete("google_error");
@@ -342,6 +350,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<UserType>("musteri");
+  const [pendingGoogleToken, setPendingGoogleToken] = useState<string | null>(null);
   const [showMyOrders, setShowMyOrders] = useState(false);
   const [pendingBooking, setPendingBookingState] = useState<PendingBookingData | null>(() => {
     try {
@@ -628,6 +637,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       vendors, refreshVendors, isVendorPublished, publishVendorProfile,
       showAuthModal, setShowAuthModal,
       authMode, setAuthMode,
+      pendingGoogleToken, setPendingGoogleToken,
       showMyOrders, setShowMyOrders,
       logout,
       pendingBooking, setPendingBooking,

@@ -192,6 +192,45 @@ router.post("/auth/login", loginLimiter, async (req, res) => {
   }
 });
 
+/* POST /api/auth/consent — Google OAuth yeni kullanıcı sözleşme onayı */
+router.post("/auth/consent", async (req, res) => {
+  const { token, consentTerms, consentKvkk } = req.body as {
+    token?: string;
+    consentTerms?: boolean;
+    consentKvkk?: boolean;
+  };
+
+  if (!token) { res.status(400).json({ error: "Token zorunludur" }); return; }
+  if (!consentTerms || !consentKvkk) {
+    res.status(400).json({ error: "Kullanıcı Sözleşmesi ve KVKK onayları zorunludur" });
+    return;
+  }
+
+  try {
+    const { verifyToken } = await import("../lib/jwt.js");
+    const payload = verifyToken(token);
+    if (!payload) { res.status(401).json({ error: "Geçersiz token" }); return; }
+
+    const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim()
+      || req.socket.remoteAddress
+      || "";
+
+    await db.insert(consentLogsTable).values({
+      userId:           payload.userId,
+      email:            payload.email,
+      consentTerms:     true,
+      consentKvkk:      true,
+      agreementVersion: "1.0",
+      ipAddress:        ip,
+      userAgent:        (req.headers["user-agent"] ?? "").slice(0, 500),
+    });
+
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "Onay kaydedilirken hata oluştu" });
+  }
+});
+
 /* POST /api/auth/forgot-password */
 router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
   const { email } = req.body as { email?: string };

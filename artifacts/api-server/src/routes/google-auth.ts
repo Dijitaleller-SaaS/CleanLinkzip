@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { OAuth2Client } from "google-auth-library";
-import { db, usersTable, vendorProfilesTable } from "@workspace/db";
+import { db, usersTable, vendorProfilesTable, consentLogsTable } from "@workspace/db";
 import { eq, or } from "drizzle-orm";
 import { signToken } from "../lib/jwt";
 
@@ -76,6 +76,7 @@ router.get("/auth/google/callback", async (req, res) => {
       .limit(1);
 
     let user = existing;
+    let isNewUser = false;
 
     if (user) {
       /* Link google_id if not already linked */
@@ -99,6 +100,7 @@ router.get("/auth/google/callback", async (req, res) => {
         })
         .returning();
       user = newUser;
+      isNewUser = true;
     }
 
     /* Admin email override — always grant admin role for known admin addresses */
@@ -132,7 +134,14 @@ router.get("/auth/google/callback", async (req, res) => {
       tokenVersion: user.tokenVersion,
     });
 
-    /* Redirect to frontend with token in URL fragment — never appears in server logs or Referer headers */
+    /* New users must accept terms before we grant full session.
+       Redirect with needs_consent=true — frontend will show consent modal, token only saved after acceptance. */
+    if (isNewUser) {
+      res.redirect(`${APP_URL}/#google_token=${token}&needs_consent=true`);
+      return;
+    }
+
+    /* Existing user — redirect normally */
     res.redirect(`${APP_URL}/#google_token=${token}`);
   } catch (err) {
     req.log.error({ err }, "Google OAuth callback error");

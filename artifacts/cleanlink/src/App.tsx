@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { GoogleConsentModal } from "@/components/auth/GoogleConsentModal";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
 import { KvkkConsent } from "@/components/kvkk/KvkkConsent";
 import Home from "@/pages/Home";
@@ -468,6 +469,7 @@ function AppInner() {
           <Router />
         </WouterRouter>
         <AuthModal />
+        <GoogleConsentModal />
         <CustomerOrdersPanel />
         <KvkkConsent />
         <Toaster />

@@ -60,6 +60,10 @@ export async function apiRegister(
   return data;
 }
 
+export async function apiSubmitGoogleConsent(token: string, consentTerms: boolean, consentKvkk: boolean): Promise<void> {
+  await request<{ ok: boolean }>("POST", "/auth/consent", { token, consentTerms, consentKvkk });
+}
+
 export async function apiLogin(email: string, password: string): Promise<AuthResponse> {
   const data = await request<AuthResponse>("POST", "/auth/login", { email, password });
   setToken(data.token);
