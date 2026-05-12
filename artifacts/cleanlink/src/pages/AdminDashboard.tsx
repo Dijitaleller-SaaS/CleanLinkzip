@@ -133,7 +133,7 @@ function FirmaTab() {
     const matchFilter =
       filter === "crm"     ? (v.isSubscribed && !v.isSponsor) && !exp :
       filter === "sponsor" ? v.isSponsor && !exp :
-      filter === "yeni"    ? (!v.isPublished && !v.isSubscribed && !v.isSponsor) :
+      filter === "yeni"    ? (!v.isSubscribed && !v.isSponsor) :
       true;
     const q = search.toLowerCase().trim();
     const matchSearch = !q || v.name.toLowerCase().includes(q) || v.email.toLowerCase().includes(q);
@@ -199,7 +199,7 @@ function FirmaTab() {
 
   const filterTabs: { key: FirmaFilter; label: string }[] = [
     { key: "tümü",   label: `Tümü (${vendors.length})` },
-    { key: "yeni",   label: `Pasif / Onay Bekliyor (${vendors.filter(v => !v.isPublished && !v.isSubscribed && !v.isSponsor).length})` },
+    { key: "yeni",   label: `Pasif / Onay Bekliyor (${vendors.filter(v => !v.isSubscribed && !v.isSponsor).length})` },
     { key: "crm",    label: `CRM Üye (${vendors.filter(v => v.isSubscribed && !v.isSponsor && !isExpired(v)).length})` },
     { key: "sponsor", label: `Sponsor (${vendors.filter(v => v.isSponsor && !isExpired(v)).length})` },
   ];
@@ -314,7 +314,7 @@ function FirmaTab() {
 
                   <div className="flex flex-wrap gap-2 flex-shrink-0">
                     {/* Profil/Ödeme Onayla — pasif ya da onay bekleyen tüm firmalar için */}
-                    {!v.isPublished && !v.isSubscribed && !v.isSponsor && (
+                    {!v.isSubscribed && !v.isSponsor && (
                       <button disabled={isBusy} onClick={() => handleApprove(v.id)}
                         className="flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 rounded-xl px-3 py-2 transition-colors">
                         {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
