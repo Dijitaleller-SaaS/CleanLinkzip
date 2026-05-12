@@ -82607,7 +82607,7 @@ router7.patch("/admin/vendors/by-name/:name/approve", async (req, res) => {
       paket,
       yayinaGirisTarihi: now,
       activatedAt: now,
-      isPublished: true,
+      isPublished: paket === "elite",
       updatedAt: now
     }).where(eq(vendorProfilesTable.userId, user.id));
     const vendor = await getAdminVendorByUserId(user.id);
@@ -82689,7 +82689,7 @@ router7.patch("/admin/vendors/:id/approve", async (req, res) => {
         paket,
         yayinaGirisTarihi: now,
         activatedAt: now,
-        isPublished: true,
+        isPublished: paket === "elite",
         updatedAt: now
       }).where(eq(vendorProfilesTable.id, id));
     }

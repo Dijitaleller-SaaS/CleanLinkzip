@@ -178,6 +178,7 @@ router.patch("/admin/vendors/by-name/:name/approve", async (req, res) => {
 
     const paket = (profile.havalePkg ?? "standart") as "standart" | "elite";
     const now = new Date();
+    /* Elite → vitrine düşer (isPublished: true); Standart → sadece admin listesinde (isPublished: false) */
     await db
       .update(vendorProfilesTable)
       .set({
@@ -187,7 +188,7 @@ router.patch("/admin/vendors/by-name/:name/approve", async (req, res) => {
         paket,
         yayinaGirisTarihi:   now,
         activatedAt:         now,
-        isPublished:         true,
+        isPublished:         paket === "elite",
         updatedAt:           now,
       })
       .where(eq(vendorProfilesTable.userId, user.id));
@@ -279,6 +280,7 @@ router.patch("/admin/vendors/:id/approve", async (req, res) => {
         .where(eq(vendorProfilesTable.id, id));
     } else {
       const paket = (profile.havalePkg ?? "standart") as "standart" | "elite";
+      /* Elite → vitrine düşer (isPublished: true); Standart → sadece admin listesinde (isPublished: false) */
       await db
         .update(vendorProfilesTable)
         .set({
@@ -288,7 +290,7 @@ router.patch("/admin/vendors/:id/approve", async (req, res) => {
           paket,
           yayinaGirisTarihi:   now,
           activatedAt:         now,
-          isPublished:         true,
+          isPublished:         paket === "elite",
           updatedAt:           now,
         })
         .where(eq(vendorProfilesTable.id, id));
