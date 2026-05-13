@@ -78,10 +78,13 @@ export default function FirmaProfil() {
     ? `${vendor.name}: ${vendor.bio?.slice(0, 140) || `${vendor.regions.join(", ") || "Türkiye"} bölgesinde profesyonel temizlik hizmeti.`} CleanLink üzerinden anında randevu alın.`
     : "";
 
+  const ogImage = vendor?.galleryUrls?.[0] ?? undefined;
   useSEO({
     title: seoTitle,
     description: seoDesc,
     canonical: vendor ? `/firma/${slug}` : "/firmalar",
+    ogImage,
+    ogType: "website",
     noIndex: !vendor,
   });
 

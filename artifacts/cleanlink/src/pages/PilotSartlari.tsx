@@ -67,6 +67,22 @@ export default function PilotSartlari() {
     title: "İş Ortaklığı & Pilot Program — Temizlik Firmanızı Dijitalleştirin",
     description: "CleanLink pilot programına katılın. Temizlik firmanızı dijitalleştirin, yeni müşteriler kazanın, rezervasyonlarınızı yönetin. Aylık 999 TL ile vitrine çıkın.",
     canonical: "/pilot-sartlari",
+    ogImage: "https://cleanlinktr.com/opengraph.jpg",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "name": "CleanLink Pilot Program",
+      "description": "Temizlik firmalarına yönelik dijital platform abonelik hizmeti. Yeni müşteriler, online rezervasyon ve CRM araçları.",
+      "provider": { "@type": "Organization", "name": "CleanLink", "url": "https://cleanlinktr.com" },
+      "offers": {
+        "@type": "Offer",
+        "price": "999",
+        "priceCurrency": "TRY",
+        "billingIncrement": "P1M",
+        "description": "Aylık abonelik — pilot program",
+      },
+      "url": "https://cleanlinktr.com/pilot-sartlari",
+    },
   });
   const [basvuruOpen, setBasvuruOpen] = useState(false);
   const [kontenjan, setKontenjan] = useState(DEFAULT_KONTENJAN);

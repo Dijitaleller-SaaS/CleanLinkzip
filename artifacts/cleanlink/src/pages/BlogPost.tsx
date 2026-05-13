@@ -151,9 +151,11 @@ export default function BlogPost() {
   }, [slug, staticPost]);
 
   useSEO({
-    title: post ? `${post.title} | CleanLink Blog` : "Yazı bulunamadı | CleanLink Blog",
+    title: post ? post.title : "Yazı bulunamadı | CleanLink Blog",
     description: post?.excerpt ?? "Aradığınız blog yazısı bulunamadı.",
     canonical: `/blog/${slug}`,
+    ogType: "article",
+    ogImage: post?.coverImage,
   });
 
   useEffect(() => {

@@ -235,7 +235,7 @@ export function FeaturedCompanies() {
                 {/* Gallery preview strip */}
                 <div className={`h-28 ${firstGalleryImg ? "bg-gray-900" : `bg-gradient-to-br ${company.galleryColors[0].gradient}`} flex items-center justify-center relative overflow-hidden`}>
                   {firstGalleryImg
-                    ? <img src={firstGalleryImg} alt={company.name} className="absolute inset-0 w-full h-full object-cover" />
+                    ? <img src={firstGalleryImg} alt={company.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />
                     : (() => { const Icon = company.galleryColors[0].icon; return <Icon className="w-12 h-12 text-white/30" />; })()
                   }
 

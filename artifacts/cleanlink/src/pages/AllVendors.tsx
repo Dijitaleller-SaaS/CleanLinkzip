@@ -295,7 +295,7 @@ export default function AllVendors() {
                   {/* Gallery strip */}
                   <div className={`h-28 ${firstGalleryImg ? "bg-gray-900" : `bg-gradient-to-br ${firma.galleryColors[0].gradient}`} flex items-center justify-center relative overflow-hidden`}>
                     {firstGalleryImg
-                      ? <img src={firstGalleryImg} alt={firma.name} className="absolute inset-0 w-full h-full object-cover" />
+                      ? <img src={firstGalleryImg} alt={firma.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />
                       : <GalleryIcon className="w-12 h-12 text-white/30" />
                     }
 

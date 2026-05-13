@@ -1402,7 +1402,7 @@ function ProfilTab() {
         <div className="grid grid-cols-3 gap-3">
           {gallery.map((url, i) => (
             <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
-              <img src={url} alt={`Galeri ${i + 1}`} className="w-full h-full object-cover" />
+              <img src={url} alt={`Galeri ${i + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
               <button
                 onClick={() => removeGallery(i)}
                 className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"

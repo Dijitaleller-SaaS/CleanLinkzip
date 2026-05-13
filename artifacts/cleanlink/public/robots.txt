@@ -5,7 +5,9 @@ Disallow: /firma-dashboard
 Disallow: /sifre-sifirla
 Disallow: /api/
 
-# Social media crawlers — always allow
+Crawl-delay: 1
+
+# Social media crawlers — full access
 User-agent: facebookexternalhit
 Allow: /
 
@@ -20,5 +22,22 @@ Allow: /
 
 User-agent: WhatsApp
 Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+Disallow: /admin-dashboard
+Disallow: /firma-dashboard
+Disallow: /sifre-sifirla
+Disallow: /api/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin-dashboard
+Disallow: /firma-dashboard
+Disallow: /sifre-sifirla
+Disallow: /api/
 
 Sitemap: https://cleanlinktr.com/sitemap.xml
