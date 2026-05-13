@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSEO } from "@/hooks/useSEO";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { FirmaBasvuruModal } from "@/components/basvuru/FirmaBasvuruModal";
 import {
@@ -62,6 +63,11 @@ const CRM_FEATURES = [
 ];
 
 export default function PilotSartlari() {
+  useSEO({
+    title: "İş Ortaklığı & Pilot Program — Temizlik Firmanızı Dijitalleştirin",
+    description: "CleanLink pilot programına katılın. Temizlik firmanızı dijitalleştirin, yeni müşteriler kazanın, rezervasyonlarınızı yönetin. Aylık 999 TL ile vitrine çıkın.",
+    canonical: "/pilot-sartlari",
+  });
   const [basvuruOpen, setBasvuruOpen] = useState(false);
   const [kontenjan, setKontenjan] = useState(DEFAULT_KONTENJAN);
   const { user, setShowAuthModal, setAuthMode } = useApp();
