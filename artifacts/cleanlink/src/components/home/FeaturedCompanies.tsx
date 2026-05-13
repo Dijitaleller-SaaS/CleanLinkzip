@@ -11,27 +11,14 @@ import { useLocation } from "wouter";
 import { getFirmaSlugFromUrl, toSlug } from "@/lib/analytics";
 
 const COMPANIES: FirmaData[] = [
-  /* Gün Temizlik — gerçek DB firması (id=1), carousel'de placeholder olarak kullanılır */
   {
-    id: 1,
-    name: "Gün Temizlik Hizmetleri",
-    rating: 4.8,
-    reviews: 0,
-    location: "İstanbul / Şişli",
+    id: 1, name: "Gün Temizlik Hizmetleri",
+    rating: 4.8, reviews: 0, location: "İstanbul / Şişli",
     tags: ["Koltuk Yıkama", "Halı Yıkama", "Ev Temizliği"],
-    verified: true,
-    isPremium: true,
-    badge: "pilot",
-    image: "",
-    phone: "",
+    verified: true, isPremium: true, badge: "pilot", image: "", phone: "",
     bio: "Koltuk, halı ve ev temizliğinde profesyonel çözümler. Buharlı yıkama teknolojisi ve çevre dostu ürünlerle temiz bir yaşam alanı.",
-    founded: "2023",
-    completedJobs: 0,
-    hasPati: false,
-    isNatureFriendly: false,
-    certs: [
-      { label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" },
-    ],
+    founded: "2023", completedJobs: 0, hasPati: false, isNatureFriendly: false,
+    certs: [{ label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" }],
     services: [
       { name: "L Koltuk Yıkama", price: "600", unit: "/ set", scope: "Buharlı derin temizlik, leke ve koku giderme." },
       { name: "Halı Yıkama", price: "35", unit: "/ m²", scope: "Endüstriyel yıkama, organik deterjan, kuru teslim." },
@@ -41,6 +28,46 @@ const COMPANIES: FirmaData[] = [
       { gradient: "from-emerald-400 to-teal-500", icon: Sofa, label: "Koltuk Yıkama" },
       { gradient: "from-teal-400 to-primary", icon: Layers, label: "Halı Yıkama" },
       { gradient: "from-cyan-400 to-sky-500", icon: Home, label: "Ev Temizliği" },
+    ],
+    reviewList: [],
+  },
+  {
+    id: 2, name: "Cleanlink Temizlik",
+    rating: 4.9, reviews: 0, location: "İstanbul / Beşiktaş",
+    tags: ["Ev Temizliği", "Ofis", "Derin Temizlik"],
+    verified: true, isPremium: true, badge: "pilot", image: "", phone: "",
+    bio: "Ev, ofis ve inşaat sonrası temizlik hizmetlerinde güvenilir çözüm ortağınız. Çevre dostu ürünler ve eğitimli personel ile kaliteli hizmet.",
+    founded: "2024", completedJobs: 0, hasPati: true, isNatureFriendly: true,
+    certs: [{ label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" }],
+    services: [
+      { name: "2+1 Ev Temizliği", price: "1.500", unit: "/ ziyaret", scope: "Tüm odalar, mutfak, banyo dezenfeksiyonu dahil." },
+      { name: "3+1 Ev Temizliği", price: "2.200", unit: "/ ziyaret", scope: "Balkon, dolap içleri ve fırın temizliği de dahil." },
+      { name: "Ofis Temizliği", price: "850", unit: "/ gün", scope: "50m²'ye kadar ofis, ortak alan ve tuvalet." },
+    ],
+    galleryColors: [
+      { gradient: "from-teal-400 to-primary", icon: Home, label: "Ev Temizliği" },
+      { gradient: "from-emerald-400 to-teal-500", icon: SprayCan, label: "Derin Temizlik" },
+      { gradient: "from-cyan-400 to-sky-500", icon: Wind, label: "Ofis Temizliği" },
+    ],
+    reviewList: [],
+  },
+  {
+    id: 3, name: "Elitplus+ Koltuk Yıkama",
+    rating: 4.9, reviews: 0, location: "İstanbul / Gaziosmanpaşa",
+    tags: ["Koltuk Yıkama", "Araç İçi", "Buharlı"],
+    verified: true, isPremium: true, badge: "pilot", image: "", phone: "",
+    bio: "Buharlı yıkama teknolojisiyle koltuk, L koltuk ve araç içi temizliğinde uzman. Aynı gün servis ve hızlı kuruma garantisi.",
+    founded: "2024", completedJobs: 0, hasPati: true, isNatureFriendly: true,
+    certs: [{ label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" }],
+    services: [
+      { name: "L Koltuk Yıkama", price: "650", unit: "/ set", scope: "Buharlı derin temizlik, leke ve koku giderme." },
+      { name: "Tekli Koltuk", price: "200", unit: "/ adet", scope: "Standart koltuk buharlı yıkama." },
+      { name: "Araç İçi Temizlik", price: "450", unit: "/ araç", scope: "Koltuk ve tavan buharlı yıkama, koku giderme." },
+    ],
+    galleryColors: [
+      { gradient: "from-sky-400 to-blue-500", icon: Sofa, label: "Koltuk Yıkama" },
+      { gradient: "from-blue-400 to-indigo-500", icon: Wind, label: "Buhar Sistemi" },
+      { gradient: "from-indigo-400 to-violet-500", icon: SprayCan, label: "Araç İçi" },
     ],
     reviewList: [],
   },
@@ -136,27 +163,21 @@ export function FeaturedCompanies() {
     return { ...defaultFirmaProfile };
   };
 
-  /* Dynamic sponsor firms from context vendors (not already in static COMPANIES) */
-  const dynamicSponsors = useMemo(() =>
+  /* All published DB vendors not already represented in static COMPANIES */
+  const dynamicVendors = useMemo(() =>
     vendors
       .filter(v => v.isPublished && !COMPANY_NAMES.has(v.name))
-      .filter(v => v.isSponsor ?? false)
       .map((v, i) => buildFirmaData(v, i))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   , [vendors]);
 
-  /* Real sponsors (DB) fill first slots; seed/demo firms fill remainder 1:1 */
+  /* Carousel = DB vendors first, then static COMPANIES — each firm exactly once */
   const carouselFirms = useMemo(() => {
-    const realFirms = dynamicSponsors;
-    const seedSlots = Math.max(0, 6 - realFirms.length);
-    const seedFirms = COMPANIES.filter(c => c.isPremium).slice(0, seedSlots);
-    const base = [...realFirms, ...seedFirms];
-    if (base.length === 0) return base;
-    const padded = [...base];
-    while (padded.length < 6) padded.push(...base);
-    return padded.slice(0, Math.max(base.length, 6));
+    const dbNames = new Set(dynamicVendors.map(d => d.name));
+    const staticFirms = COMPANIES.filter(c => !dbNames.has(c.name));
+    return [...dynamicVendors, ...staticFirms];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dynamicSponsors, user?.name]);
+  }, [dynamicVendors, user?.name]);
 
   /* ── rAF auto-scroll: 40 px/s, pauses on hover & after arrow click ── */
   const trackRef = useRef<HTMLDivElement>(null);
