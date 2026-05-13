@@ -83780,6 +83780,14 @@ var routes_default = router15;
 // src/app.ts
 var app = (0, import_express16.default)();
 app.set("trust proxy", 1);
+app.use((req, res, next) => {
+  const host = req.hostname;
+  if (host && host.startsWith("www.")) {
+    const bare = host.slice(4);
+    return res.redirect(301, `https://${bare}${req.originalUrl}`);
+  }
+  next();
+});
 app.use(
   (0, import_pino_http.default)({
     logger,
