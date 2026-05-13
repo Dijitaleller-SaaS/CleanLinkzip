@@ -12,6 +12,16 @@ const app: Express = express();
    Trust the first proxy so Express sees correct protocol/IP/host. */
 app.set("trust proxy", 1);
 
+/* www → non-www canonical redirect */
+app.use((req, res, next) => {
+  const host = req.hostname;
+  if (host && host.startsWith("www.")) {
+    const bare = host.slice(4);
+    return res.redirect(301, `https://${bare}${req.originalUrl}`);
+  }
+  next();
+});
+
 app.use(
   pinoHttp({
     logger,

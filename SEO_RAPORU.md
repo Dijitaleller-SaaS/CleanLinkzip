@@ -64,9 +64,11 @@ Instagram (ve Facebook) bir linki önizlemek için `facebookexternalhit` adlı b
 | `twitter:site` etiketi eksikti | 🟠 Düşük | **Bu raporda düzeltildi** |
 | `dns-prefetch` eski domain'e işaret ediyordu (`replit.app`) | 🟡 Orta | **Bu raporda düzeltildi** |
 | JSON-LD iletişim e-postası kişisel adres | 🟠 Düşük | **Bu raporda düzeltildi** |
-| JSON-LD `sameAs` boş | 🟠 Düşük | Sosyal medya profilleri eklenmeli |
+| JSON-LD `sameAs` boş | 🟠 Düşük | **Bu raporda düzeltildi** |
 | Sitemap'te `/pilot-sartlari` eksikti | 🟡 Orta | **Bu raporda düzeltildi** |
-| Sosyal medya profil linkleri (`sameAs`) boş | 🟠 Düşük | Instagram/LinkedIn linkleri eklenmeli |
+| `www.cleanlinktr.com` → `cleanlinktr.com` yönlendirmesi yoktu | 🔴 Kritik | **Bu raporda düzeltildi** |
+| Google Search Console HTML doğrulama dosyası eksikti | 🔴 Kritik | **Bu raporda düzeltildi** |
+| Sosyal medya profil linkleri (`sameAs`) boş | 🟠 Düşük | Instagram linki eklendi |
 | `og:image` boyutu yeniden üretilmeli (1200x630) | 🟡 Orta | Yeni görsel tasarlanmalı |
 
 ---
