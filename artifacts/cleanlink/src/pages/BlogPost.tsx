@@ -1,8 +1,9 @@
+import { useState, useEffect } from "react";
 import { useRoute, Link } from "wouter";
 import { useSEO } from "@/hooks/useSEO";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ArrowLeft, BookOpen, Clock, Tag } from "lucide-react";
-import { useEffect } from "react";
+import { apiGetBlogPostBySlug } from "@/lib/api";
 
 const BASE_URL = "https://cleanlinktr.com";
 
@@ -118,10 +119,36 @@ const POSTS: FullPost[] = [
 
 const POST_BY_SLUG: Record<string, FullPost> = Object.fromEntries(POSTS.map(p => [p.slug, p]));
 
+function dbPostToFullPost(p: Awaited<ReturnType<typeof apiGetBlogPostBySlug>>): FullPost | null {
+  if (!p || !p.slug) return null;
+  return {
+    slug: p.slug,
+    title: p.title,
+    category: p.category,
+    postDate: p.postDate,
+    readTime: p.readTime,
+    excerpt: p.excerpt,
+    ctaLink: "/firmalar",
+    ctaText: "Onaylı Firmaları İncele",
+    body: (p.content ?? []) as { h: string; p: string }[],
+    faq: (p.faq ?? []) as { q: string; a: string }[],
+  };
+}
+
 export default function BlogPost() {
   const [, params] = useRoute("/blog/:slug");
   const slug = params?.slug ?? "";
-  const post = POST_BY_SLUG[slug];
+  const staticPost = POST_BY_SLUG[slug];
+  const [post, setPost] = useState<FullPost | null>(staticPost ?? null);
+  const [loadingDb, setLoadingDb] = useState(!staticPost);
+
+  useEffect(() => {
+    if (staticPost) { setPost(staticPost); return; }
+    setLoadingDb(true);
+    apiGetBlogPostBySlug(slug)
+      .then(dbPost => { const p = dbPostToFullPost(dbPost); if (p) setPost(p); })
+      .finally(() => setLoadingDb(false));
+  }, [slug, staticPost]);
 
   useSEO({
     title: post ? `${post.title} | CleanLink Blog` : "Yazı bulunamadı | CleanLink Blog",
@@ -162,6 +189,17 @@ export default function BlogPost() {
     document.head.appendChild(tag2);
     return () => { tag1.remove(); tag2.remove(); };
   }, [post]);
+
+  if (loadingDb) {
+    return (
+      <PageLayout breadcrumbs={[{ label: "Blog", href: "/blog" }, { label: "Yükleniyor..." }]}>
+        <div className="max-w-2xl mx-auto text-center py-20">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm">Yazı yükleniyor...</p>
+        </div>
+      </PageLayout>
+    );
+  }
 
   if (!post) {
     return (

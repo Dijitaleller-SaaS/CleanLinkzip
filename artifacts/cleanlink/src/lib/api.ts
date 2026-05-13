@@ -586,6 +586,9 @@ export async function apiMarkAllNotificationsRead(): Promise<void> {
 }
 
 /* ── CMS ── */
+export interface BlogBodySection { h: string; p: string; }
+export interface BlogFaqItem { q: string; a: string; }
+
 export interface CmsBlogPost {
   id: number;
   title: string;
@@ -594,6 +597,10 @@ export interface CmsBlogPost {
   readTime: string;
   excerpt: string;
   sortOrder: number;
+  slug: string | null;
+  content: BlogBodySection[];
+  faq: BlogFaqItem[];
+  published: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -601,6 +608,20 @@ export interface CmsBlogPost {
 export async function apiGetBlogPosts(): Promise<CmsBlogPost[]> {
   const data = await request<{ posts: CmsBlogPost[] }>("GET", "/cms/blog");
   return data.posts;
+}
+
+export async function apiGetAllBlogPosts(): Promise<CmsBlogPost[]> {
+  const data = await request<{ posts: CmsBlogPost[] }>("GET", "/cms/blog/all", undefined, true);
+  return data.posts;
+}
+
+export async function apiGetBlogPostBySlug(slug: string): Promise<CmsBlogPost | null> {
+  try {
+    const data = await request<{ post: CmsBlogPost }>("GET", `/cms/blog/${slug}`);
+    return data.post;
+  } catch {
+    return null;
+  }
 }
 
 export async function apiCreateBlogPost(post: Omit<CmsBlogPost, "id" | "createdAt" | "updatedAt">): Promise<CmsBlogPost> {

@@ -11,31 +11,24 @@ import { BookingModal, BookingServiceItem } from "@/components/booking/BookingMo
 import { FirmaProfilModal, FirmaData } from "@/components/firma/FirmaProfilModal";
 import { SprayCan } from "lucide-react";
 
-/* ── Pilot firm routing table ── */
-const SEED_ROUTING: { name: string; regions: string[]; tier: number }[] = [
-  { name: "Cleanlink Temizlik",      regions: ["Beşiktaş","Şişli","Beyoğlu","Bağcılar","Küçükçekmece"],           tier: 3 },
-  { name: "Elitplus+ Koltuk Yıkama", regions: ["Gaziosmanpaşa","Bağcılar","Eyüpsultan","Küçükçekmece","Fatih"],   tier: 3 },
-];
-
 function findBestFirma(ilce: string, vendors: { name: string; isPublished: boolean }[]): string | null {
-  const dynamicCandidates = vendors
-    .filter(v => v.isPublished && !SEED_ROUTING.some(s => s.name === v.name))
+  const candidates = vendors
+    .filter(v => v.isPublished)
     .map(v => { const p = loadFirmaProfile(v.name); return { name: v.name, regions: p.regions, tier: p.isSponsor ? 3 : p.isSubscribed ? 2 : 1 }; });
-  const all = [...SEED_ROUTING, ...dynamicCandidates];
-  const inDistrict = ilce ? all.filter(c => c.regions.includes(ilce)) : all;
-  const candidates = inDistrict.length > 0 ? inDistrict : all;
-  const maxTier = Math.max(...candidates.map(c => c.tier));
-  const topGroup = candidates.filter(c => c.tier === maxTier);
+  const inDistrict = ilce ? candidates.filter(c => c.regions.includes(ilce)) : candidates;
+  const pool = inDistrict.length > 0 ? inDistrict : candidates;
+  if (pool.length === 0) return null;
+  const maxTier = Math.max(...pool.map(c => c.tier));
+  const topGroup = pool.filter(c => c.tier === maxTier);
   return topGroup[Math.floor(Math.random() * topGroup.length)]?.name ?? null;
 }
 
 function findDistrictFirmas(ilce: string, vendors: { name: string; isPublished: boolean }[]): { name: string; tier: number }[] {
-  const dynamicCandidates = vendors
-    .filter(v => v.isPublished && !SEED_ROUTING.some(s => s.name === v.name))
+  const candidates = vendors
+    .filter(v => v.isPublished)
     .map(v => { const p = loadFirmaProfile(v.name); return { name: v.name, regions: p.regions, tier: p.isSponsor ? 3 : p.isSubscribed ? 2 : 1 }; });
-  const all = [...SEED_ROUTING, ...dynamicCandidates];
-  const inDistrict = ilce ? all.filter(c => c.regions.includes(ilce)) : all;
-  const pool = inDistrict.length > 0 ? inDistrict : all;
+  const inDistrict = ilce ? candidates.filter(c => c.regions.includes(ilce)) : candidates;
+  const pool = inDistrict.length > 0 ? inDistrict : candidates;
   return [...pool].sort((a, b) => b.tier - a.tier);
 }
 

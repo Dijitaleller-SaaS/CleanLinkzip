@@ -42,7 +42,12 @@ function withColors(p: Omit<DisplayPost, "gradient" | "border" | "dot">, i: numb
 
 function toDisplay(p: CmsBlogPost, i: number): DisplayPost {
   const g = GRADIENTS[i % GRADIENTS.length];
-  return { title: p.title, category: p.category, postDate: p.postDate, readTime: p.readTime, excerpt: p.excerpt, ...g };
+  return {
+    title: p.title, category: p.category, postDate: p.postDate,
+    readTime: p.readTime, excerpt: p.excerpt,
+    link: p.slug ? `/blog/${p.slug}` : undefined,
+    ...g,
+  };
 }
 
 export default function Blog() {

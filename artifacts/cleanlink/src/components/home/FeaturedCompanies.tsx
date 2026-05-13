@@ -11,6 +11,7 @@ import { useLocation } from "wouter";
 import { getFirmaSlugFromUrl, toSlug } from "@/lib/analytics";
 
 const COMPANIES: FirmaData[] = [
+  /* Gün Temizlik — gerçek DB firması (id=1), carousel'de placeholder olarak kullanılır */
   {
     id: 1,
     name: "Gün Temizlik Hizmetleri",
@@ -40,70 +41,6 @@ const COMPANIES: FirmaData[] = [
       { gradient: "from-emerald-400 to-teal-500", icon: Sofa, label: "Koltuk Yıkama" },
       { gradient: "from-teal-400 to-primary", icon: Layers, label: "Halı Yıkama" },
       { gradient: "from-cyan-400 to-sky-500", icon: Home, label: "Ev Temizliği" },
-    ],
-    reviewList: [],
-  },
-  {
-    id: 2,
-    name: "Cleanlink Temizlik",
-    rating: 4.9,
-    reviews: 0,
-    location: "İstanbul / Beşiktaş",
-    tags: ["Ev Temizliği", "Ofis", "Derin Temizlik"],
-    verified: true,
-    isPremium: true,
-    badge: "pilot",
-    image: "",
-    phone: "",
-    bio: "Ev, ofis ve inşaat sonrası temizlik hizmetlerinde güvenilir çözüm ortağınız. Çevre dostu ürünler ve eğitimli personel ile kaliteli hizmet.",
-    founded: "2024",
-    completedJobs: 0,
-    hasPati: true,
-    isNatureFriendly: true,
-    certs: [
-      { label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" },
-    ],
-    services: [
-      { name: "2+1 Ev Temizliği", price: "1.500", unit: "/ ziyaret", scope: "Tüm odalar, mutfak, banyo dezenfeksiyonu dahil." },
-      { name: "3+1 Ev Temizliği", price: "2.200", unit: "/ ziyaret", scope: "Balkon, dolap içleri ve fırın temizliği de dahil." },
-      { name: "Ofis Temizliği", price: "850", unit: "/ gün", scope: "50m²'ye kadar ofis, ortak alan ve tuvalet." },
-    ],
-    galleryColors: [
-      { gradient: "from-teal-400 to-primary", icon: Home, label: "Ev Temizliği" },
-      { gradient: "from-emerald-400 to-teal-500", icon: SprayCan, label: "Derin Temizlik" },
-      { gradient: "from-cyan-400 to-sky-500", icon: Wind, label: "Ofis Temizliği" },
-    ],
-    reviewList: [],
-  },
-  {
-    id: 3,
-    name: "Elitplus+ Koltuk Yıkama",
-    rating: 4.9,
-    reviews: 0,
-    location: "İstanbul / Gaziosmanpaşa",
-    tags: ["Koltuk Yıkama", "Araç İçi", "Buharlı"],
-    verified: true,
-    isPremium: true,
-    badge: "pilot",
-    image: "",
-    phone: "",
-    bio: "Buharlı yıkama teknolojisiyle koltuk, L koltuk ve araç içi temizliğinde uzman. Aynı gün servis ve hızlı kuruma garantisi.",
-    founded: "2024",
-    completedJobs: 0,
-    hasPati: true,
-    isNatureFriendly: true,
-    certs: [
-      { label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" },
-    ],
-    services: [
-      { name: "L Koltuk Yıkama", price: "650", unit: "/ set", scope: "Buharlı derin temizlik, leke ve koku giderme." },
-      { name: "Tekli Koltuk", price: "200", unit: "/ adet", scope: "Standart koltuk buharlı yıkama." },
-      { name: "Araç İçi Temizlik", price: "450", unit: "/ araç", scope: "Koltuk ve tavan buharlı yıkama, koku giderme." },
-    ],
-    galleryColors: [
-      { gradient: "from-sky-400 to-blue-500", icon: Sofa, label: "Koltuk Yıkama" },
-      { gradient: "from-blue-400 to-indigo-500", icon: Wind, label: "Buhar Sistemi" },
-      { gradient: "from-indigo-400 to-violet-500", icon: SprayCan, label: "Araç İçi" },
     ],
     reviewList: [],
   },

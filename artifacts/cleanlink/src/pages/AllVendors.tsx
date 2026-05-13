@@ -10,77 +10,8 @@ import { toSlug } from "@/lib/analytics";
 import { apiAdminSetVisibilityByName } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-/* Pilot firmalar DB'de kayıtlı olmasa da her zaman gösterilir */
-const PILOT_VENDORS: VendorEntry[] = [
-  { name: "Cleanlink Temizlik",      isPublished: true, joinedAt: 0, isSubscribed: true, isSponsor: false, hasPati: true, isNatureFriendly: true, city: "İstanbul", district: "Beşiktaş",       regions: ["Beşiktaş","Şişli","Beyoğlu","Bağcılar","Küçükçekmece"] },
-  { name: "Elitplus+ Koltuk Yıkama", isPublished: true, joinedAt: 0, isSubscribed: true, isSponsor: false, hasPati: true, isNatureFriendly: true, city: "İstanbul", district: "Gaziosmanpaşa", regions: ["Gaziosmanpaşa","Bağcılar","Eyüpsultan","Küçükçekmece","Fatih"] },
-];
-
-const STATIC_FIRM_DATA: Record<string, Partial<FirmaData>> = {
-  "Cleanlink Temizlik": {
-    id: 2, rating: 4.9, reviews: 0,
-    location: "İstanbul / Beşiktaş", tags: ["Ev Temizliği", "Ofis", "Derin Temizlik"],
-    verified: true, isPremium: true, badge: "pilot", image: "",
-    phone: "", hasPati: true, isNatureFriendly: true,
-    bio: "Ev, ofis ve inşaat sonrası temizlik hizmetlerinde güvenilir çözüm ortağınız. Çevre dostu ürünler ve eğitimli personel.",
-    founded: "2024", completedJobs: 0, certs: [],
-    services: [
-      { name: "2+1 Ev Temizliği", price: "1.500", unit: "/ ziyaret", scope: "Tüm odalar, mutfak, banyo dezenfeksiyonu dahil." },
-      { name: "Ofis Temizliği", price: "850", unit: "/ gün", scope: "50m²'ye kadar ofis." },
-    ],
-    galleryColors: [{ gradient: "from-teal-400 to-primary", icon: Home, label: "Ev Temizliği" }],
-    reviewList: [],
-  },
-  "Elitplus+ Koltuk Yıkama": {
-    id: 3, rating: 4.9, reviews: 0,
-    location: "İstanbul / Gaziosmanpaşa", tags: ["Koltuk Yıkama", "Araç İçi", "Buharlı"],
-    verified: true, isPremium: true, badge: "pilot", image: "",
-    phone: "", hasPati: true, isNatureFriendly: true,
-    bio: "Buharlı yıkama teknolojisiyle koltuk, L koltuk ve araç içi temizliğinde uzman. Aynı gün servis ve hızlı kuruma garantisi.",
-    founded: "2024", completedJobs: 0, certs: [],
-    services: [
-      { name: "L Koltuk Yıkama", price: "650", unit: "/ set", scope: "Buharlı derin temizlik, leke ve koku giderme." },
-      { name: "Araç İçi Temizlik", price: "450", unit: "/ araç", scope: "Koltuk ve tavan buharlı yıkama." },
-    ],
-    galleryColors: [{ gradient: "from-sky-400 to-blue-500", icon: Sofa, label: "Koltuk Yıkama" }],
-    reviewList: [],
-  },
-};
 
 function buildCard(vendor: VendorEntry, idx: number): FirmaData {
-  const staticData = STATIC_FIRM_DATA[vendor.name];
-  if (staticData) {
-    const prices = { ...defaultPrices, ...(vendor.prices ?? {}) };
-    const scopes = { ...defaultScopes, ...(vendor.serviceScopes ?? {}) };
-    return {
-      id: staticData.id ?? 200 + idx,
-      userId: vendor.userId,
-      name: vendor.name,
-      rating: staticData.rating ?? 4.5,
-      reviews: staticData.reviews ?? 0,
-      location: vendor.district ? `${vendor.city ?? "İstanbul"} / ${vendor.district}` : (staticData.location ?? (vendor.regions?.[0] ? `${vendor.regions[0]}, İstanbul` : (vendor.city ?? "İstanbul"))),
-      tags: staticData.tags ?? (vendor.regions?.slice(0, 3).length ? vendor.regions.slice(0, 3) : ["Ev Temizliği"]),
-      verified: staticData.verified ?? false,
-      isPremium: vendor.isSponsor ?? staticData.isPremium ?? false,
-      badge: staticData.badge ?? null,
-      hasPati: staticData.hasPati ?? vendor.hasPati ?? false,
-      isNatureFriendly: staticData.isNatureFriendly ?? vendor.isNatureFriendly ?? false,
-      image: staticData.image ?? "",
-      phone: staticData.phone ?? "",
-      bio: vendor.bio || staticData.bio || "Profesyonel temizlik hizmetleri.",
-      founded: staticData.founded ?? new Date().getFullYear().toString(),
-      completedJobs: staticData.completedJobs ?? 0,
-      certs: staticData.certs ?? [],
-      services: staticData.services ?? [
-        { name: "2+1 Ev Temizliği", price: prices.ev2p1.toString(), unit: "/ ziyaret", scope: scopes.ev2p1 || "" },
-      ],
-      galleryColors: staticData.galleryColors ?? [
-        { gradient: "from-teal-400 to-primary", icon: Home, label: "Ev Temizliği" },
-      ],
-      reviewList: staticData.reviewList ?? [],
-    };
-  }
-
   const p = loadFirmaProfile(vendor.name);
   const prices = { ...defaultPrices, ...p.prices, ...(vendor.prices && Object.keys(vendor.prices).length > 0 ? vendor.prices : {}) };
   const scopes = { ...defaultScopes, ...p.serviceScopes, ...(vendor.serviceScopes && Object.keys(vendor.serviceScopes).length > 0 ? vendor.serviceScopes : {}) };
@@ -191,14 +122,7 @@ export default function AllVendors() {
   };
 
   const allFirms = useMemo(() => {
-    /* Pilot firmaları API'den gelmeyen isimler için başa ekle */
-    const pilotNames = new Set(vendors.map(v => v.name));
-    const mergedVendors = [
-      ...PILOT_VENDORS.filter(p => !pilotNames.has(p.name)),
-      ...vendors,
-    ];
-
-    const list = mergedVendors
+    const list = vendors
       .filter(v => {
         /* Sponsor firmalar ana sayfadaki carousel'de gösterilir — buradan çıkar */
         const override = vendorOverrides[v.name];

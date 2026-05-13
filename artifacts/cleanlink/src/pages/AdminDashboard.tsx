@@ -18,7 +18,8 @@ import { useApp, ADMIN_EMAIL } from "@/context/AppContext";
 import {
   apiAdminGetVendors, apiAdminGetFinancial, apiAdminGetNotifications,
   apiAdminApprove, apiAdminExtend, apiAdminSetVisibility, apiAdminRemoveSubscription, apiAdminSetPackage,
-  apiGetBlogPosts, apiCreateBlogPost, apiUpdateBlogPost, apiDeleteBlogPost,
+  apiGetAllBlogPosts, apiCreateBlogPost, apiUpdateBlogPost, apiDeleteBlogPost,
+  type BlogBodySection, type BlogFaqItem,
   apiGetPageContent, apiUpdatePageContent,
   apiAdminGetPilotApplications, apiAdminDeletePilotApplication,
   apiAdminGetOrders, apiAdminUpdateOrderStatus,
@@ -533,13 +534,78 @@ const POST_GRADIENTS = [
   { gradient: "from-amber-50 to-orange-50",  border: "border-amber-200",   dot: "bg-amber-500" },
 ];
 
-type BlogDraft = { id?: number; title: string; category: string; postDate: string; readTime: string; excerpt: string; sortOrder: number };
-const EMPTY_DRAFT: BlogDraft = { title: "", category: "", postDate: "", readTime: "", excerpt: "", sortOrder: 0 };
+/* helpers */
+function slugify(s: string) {
+  return s.toLowerCase()
+    .replace(/ğ/g,"g").replace(/ü/g,"u").replace(/ş/g,"s")
+    .replace(/ı/g,"i").replace(/ö/g,"o").replace(/ç/g,"c")
+    .replace(/[^a-z0-9\s-]/g,"").trim().replace(/\s+/g,"-").replace(/-+/g,"-").slice(0,200);
+}
 
-const DRAFT_LABELS: Partial<Record<keyof BlogDraft, string>> = {
-  title: "Başlık", category: "Kategori", postDate: "Tarih",
-  readTime: "Okuma Süresi", excerpt: "Özet",
+type BlogDraft = {
+  id?: number;
+  title: string; category: string; postDate: string; readTime: string; excerpt: string; sortOrder: number;
+  slug: string;
+  content: BlogBodySection[];
+  faq: BlogFaqItem[];
+  published: boolean;
 };
+const EMPTY_DRAFT: BlogDraft = {
+  title: "", category: "", postDate: "", readTime: "", excerpt: "", sortOrder: 0,
+  slug: "", content: [], faq: [], published: false,
+};
+
+function SectionBuilder({ sections, onChange }: { sections: BlogBodySection[]; onChange: (s: BlogBodySection[]) => void }) {
+  return (
+    <div className="space-y-3">
+      {sections.map((sec, i) => (
+        <div key={i} className="bg-secondary/30 rounded-xl p-3 space-y-2 border border-border">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground">Bölüm {i + 1}</span>
+            <button onClick={() => onChange(sections.filter((_, j) => j !== i))}
+              className="text-rose-400 hover:text-rose-600 transition-colors"><X className="w-3.5 h-3.5" /></button>
+          </div>
+          <input placeholder="Başlık (h2)" value={sec.h}
+            onChange={e => onChange(sections.map((s, j) => j === i ? { ...s, h: e.target.value } : s))}
+            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <textarea rows={3} placeholder="Paragraf metni" value={sec.p}
+            onChange={e => onChange(sections.map((s, j) => j === i ? { ...s, p: e.target.value } : s))}
+            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+        </div>
+      ))}
+      <button onClick={() => onChange([...sections, { h: "", p: "" }])}
+        className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 rounded-xl px-3 py-1.5 hover:bg-primary/5 transition-colors">
+        <Plus className="w-3 h-3" /> Bölüm Ekle
+      </button>
+    </div>
+  );
+}
+
+function FaqBuilder({ items, onChange }: { items: BlogFaqItem[]; onChange: (f: BlogFaqItem[]) => void }) {
+  return (
+    <div className="space-y-3">
+      {items.map((item, i) => (
+        <div key={i} className="bg-secondary/30 rounded-xl p-3 space-y-2 border border-border">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground">SSS {i + 1}</span>
+            <button onClick={() => onChange(items.filter((_, j) => j !== i))}
+              className="text-rose-400 hover:text-rose-600 transition-colors"><X className="w-3.5 h-3.5" /></button>
+          </div>
+          <input placeholder="Soru" value={item.q}
+            onChange={e => onChange(items.map((f, j) => j === i ? { ...f, q: e.target.value } : f))}
+            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <textarea rows={2} placeholder="Cevap" value={item.a}
+            onChange={e => onChange(items.map((f, j) => j === i ? { ...f, a: e.target.value } : f))}
+            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+        </div>
+      ))}
+      <button onClick={() => onChange([...items, { q: "", a: "" }])}
+        className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 rounded-xl px-3 py-1.5 hover:bg-primary/5 transition-colors">
+        <Plus className="w-3 h-3" /> Soru-Cevap Ekle
+      </button>
+    </div>
+  );
+}
 
 function BlogEditor() {
   const [posts, setPosts] = useState<CmsBlogPost[]>([]);
@@ -547,30 +613,52 @@ function BlogEditor() {
   const [draft, setDraft] = useState<BlogDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [slugManual, setSlugManual] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setPosts(await apiGetBlogPosts()); }
+    try { setPosts(await apiGetAllBlogPosts()); }
     catch { /* keep current */ }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
+  const handleTitleChange = (title: string) => {
+    setDraft(d => {
+      if (!d) return d;
+      const newSlug = slugManual ? d.slug : slugify(title);
+      return { ...d, title, slug: newSlug };
+    });
+  };
+
   const save = async () => {
     if (!draft) return;
+    if (!draft.title.trim()) { alert("Başlık zorunludur"); return; }
     setSaving(true);
     try {
+      const payload = { ...draft, slug: draft.slug.trim() || slugify(draft.title) };
       if (draft.id) {
-        const updated = await apiUpdateBlogPost(draft.id, draft);
+        const updated = await apiUpdateBlogPost(draft.id, payload);
         setPosts(ps => ps.map(p => p.id === draft.id ? updated : p));
       } else {
-        const created = await apiCreateBlogPost(draft);
+        const created = await apiCreateBlogPost(payload);
         setPosts(ps => [...ps, created]);
       }
       setDraft(null);
+      setSlugManual(false);
     } catch (e) { alert((e as Error).message); }
     finally { setSaving(false); }
+  };
+
+  const openEdit = (post: CmsBlogPost) => {
+    setSlugManual(true);
+    setDraft({
+      id: post.id, title: post.title, category: post.category, postDate: post.postDate,
+      readTime: post.readTime, excerpt: post.excerpt, sortOrder: post.sortOrder,
+      slug: post.slug ?? "", content: (post.content ?? []) as BlogBodySection[],
+      faq: (post.faq ?? []) as BlogFaqItem[], published: post.published ?? false,
+    });
   };
 
   const del = async (id: number) => {
@@ -590,7 +678,7 @@ function BlogEditor() {
         <h3 className="font-semibold text-foreground flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-primary" /> Blog Yazıları
         </h3>
-        <button onClick={() => setDraft({ ...EMPTY_DRAFT })}
+        <button onClick={() => { setSlugManual(false); setDraft({ ...EMPTY_DRAFT }); }}
           className="flex items-center gap-1.5 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-xl px-3 py-2 transition-colors">
           <Plus className="w-3.5 h-3.5" /> Yeni Yazı
         </button>
@@ -608,12 +696,19 @@ function BlogEditor() {
             <div key={post.id} className={`bg-gradient-to-br ${g.gradient} border ${g.border} rounded-xl p-4 flex items-start gap-3`}>
               <span className={`w-2 h-2 rounded-full ${g.dot} mt-1.5 flex-shrink-0`} />
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-foreground text-sm">{post.title}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold text-foreground text-sm">{post.title}</p>
+                  {post.published
+                    ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">Yayında</span>
+                    : <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">Taslak</span>
+                  }
+                </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{post.category} · {post.postDate} · {post.readTime} okuma</p>
+                {post.slug && <p className="text-[11px] text-primary/70 mt-0.5 font-mono">/blog/{post.slug}</p>}
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{post.excerpt}</p>
               </div>
               <div className="flex gap-1.5 flex-shrink-0">
-                <button onClick={() => setDraft({ ...post })}
+                <button onClick={() => openEdit(post)}
                   className="p-1.5 rounded-lg hover:bg-white/60 text-muted-foreground hover:text-foreground transition-colors">
                   <Edit3 className="w-3.5 h-3.5" />
                 </button>
@@ -632,31 +727,88 @@ function BlogEditor() {
       <AnimatePresence>
         {draft && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="bg-white border border-primary/30 rounded-2xl p-5 shadow-sm">
-            <p className="font-semibold text-foreground mb-4">{draft.id ? "Yazıyı Düzenle" : "Yeni Yazı"}</p>
-            <div className="space-y-3">
-              {(["title","category","postDate","readTime","excerpt"] as const).map(field => (
-                <div key={field}>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">{DRAFT_LABELS[field]}</label>
-                  {field === "excerpt" ? (
-                    <textarea rows={3} value={draft[field]}
-                      onChange={e => setDraft(d => d ? { ...d, [field]: e.target.value } : d)}
-                      className="w-full px-3 py-2 text-sm rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
-                  ) : (
-                    <input type="text" value={draft[field]}
-                      onChange={e => setDraft(d => d ? { ...d, [field]: e.target.value } : d)}
-                      className="w-full px-3 py-2 text-sm rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                  )}
-                </div>
-              ))}
+            className="bg-white border border-primary/30 rounded-2xl p-5 shadow-sm space-y-5">
+            <p className="font-semibold text-foreground">{draft.id ? "Yazıyı Düzenle" : "Yeni Yazı"}</p>
+
+            {/* Yayın Durumu */}
+            <div className="flex items-center gap-3 p-3 bg-secondary/30 rounded-xl border border-border">
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground">Yayın Durumu</p>
+                <p className="text-xs text-muted-foreground">{draft.published ? "Yazı siteye yayınlandı" : "Taslak — sadece admin görebilir"}</p>
+              </div>
+              <button onClick={() => setDraft(d => d ? { ...d, published: !d.published } : d)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${draft.published ? "bg-green-500" : "bg-gray-200"}`}>
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${draft.published ? "translate-x-5" : ""}`} />
+              </button>
             </div>
-            <div className="flex gap-2 mt-4">
+
+            {/* Temel Bilgiler */}
+            <div className="space-y-3">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Temel Bilgiler</p>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Başlık</label>
+                <input type="text" value={draft.title} onChange={e => handleTitleChange(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">URL (Slug)</label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">/blog/</span>
+                  <input type="text" value={draft.slug}
+                    onChange={e => { setSlugManual(true); setDraft(d => d ? { ...d, slug: e.target.value } : d); }}
+                    className="flex-1 px-3 py-2 text-sm rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Kategori</label>
+                  <input type="text" value={draft.category} onChange={e => setDraft(d => d ? { ...d, category: e.target.value } : d)}
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Tarih</label>
+                  <input type="text" value={draft.postDate} onChange={e => setDraft(d => d ? { ...d, postDate: e.target.value } : d)}
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Okuma Süresi</label>
+                  <input type="text" placeholder="ör. 5 dk" value={draft.readTime} onChange={e => setDraft(d => d ? { ...d, readTime: e.target.value } : d)}
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Sıra</label>
+                  <input type="number" value={draft.sortOrder} onChange={e => setDraft(d => d ? { ...d, sortOrder: parseInt(e.target.value) || 0 } : d)}
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Özet (excerpt)</label>
+                <textarea rows={2} value={draft.excerpt} onChange={e => setDraft(d => d ? { ...d, excerpt: e.target.value } : d)}
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+              </div>
+            </div>
+
+            {/* İçerik Bölümleri */}
+            <div className="space-y-3">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">İçerik Bölümleri</p>
+              <SectionBuilder sections={draft.content} onChange={content => setDraft(d => d ? { ...d, content } : d)} />
+            </div>
+
+            {/* SSS */}
+            <div className="space-y-3">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Sıkça Sorulan Sorular</p>
+              <FaqBuilder items={draft.faq} onChange={faq => setDraft(d => d ? { ...d, faq } : d)} />
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-border">
               <button disabled={saving} onClick={save}
                 className="flex items-center gap-1.5 text-xs font-bold text-white bg-primary hover:bg-primary/90 disabled:opacity-60 rounded-xl px-4 py-2 transition-colors">
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                 Kaydet
               </button>
-              <button onClick={() => setDraft(null)}
+              <button onClick={() => { setDraft(null); setSlugManual(false); }}
                 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground border border-border rounded-xl px-4 py-2 transition-colors">
                 <X className="w-3.5 h-3.5" /> Vazgeç
               </button>

@@ -93,6 +93,10 @@ export const cmsBlogPostsTable = pgTable("cms_blog_posts", {
   readTime:  varchar("read_time", { length: 30 }).notNull().default(""),
   excerpt:   text("excerpt").notNull().default(""),
   sortOrder: integer("sort_order").notNull().default(0),
+  slug:      varchar("slug", { length: 255 }),
+  content:   jsonb("content").notNull().default([]),
+  faq:       jsonb("faq").notNull().default([]),
+  published: boolean("published").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

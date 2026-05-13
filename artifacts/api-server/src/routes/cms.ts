@@ -6,12 +6,39 @@ import { requireAdmin } from "../lib/adminMiddleware";
 
 const router = Router();
 
+/* ── helpers ── */
+function makeSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s")
+    .replace(/ı/g, "i").replace(/ö/g, "o").replace(/ç/g, "c")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 200);
+}
+
 /* ──────────────────────────────────────────
    Blog Routes
    ────────────────────────────────────────── */
 
-/* GET /api/cms/blog — public, returns all posts sorted */
+/* GET /api/cms/blog — public, returns published posts sorted */
 router.get("/cms/blog", async (_req, res) => {
+  try {
+    const posts = await db
+      .select()
+      .from(cmsBlogPostsTable)
+      .where(eq(cmsBlogPostsTable.published, true))
+      .orderBy(asc(cmsBlogPostsTable.sortOrder), asc(cmsBlogPostsTable.createdAt));
+    res.json({ posts });
+  } catch {
+    res.status(500).json({ error: "Blog yazıları yüklenemedi" });
+  }
+});
+
+/* GET /api/cms/blog/all — admin only, returns all posts (draft+published) */
+router.get("/cms/blog/all", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const posts = await db
       .select()
@@ -23,14 +50,33 @@ router.get("/cms/blog", async (_req, res) => {
   }
 });
 
+/* GET /api/cms/blog/:slug — public, get single published post by slug */
+router.get("/cms/blog/:slug", async (req, res) => {
+  const slug = String(req.params.slug);
+  try {
+    const [post] = await db
+      .select()
+      .from(cmsBlogPostsTable)
+      .where(and(eq(cmsBlogPostsTable.slug, slug), eq(cmsBlogPostsTable.published, true)))
+      .limit(1);
+    if (!post) { res.status(404).json({ error: "Yazı bulunamadı" }); return; }
+    res.json({ post });
+  } catch {
+    res.status(500).json({ error: "Blog yazısı yüklenemedi" });
+  }
+});
+
 /* POST /api/cms/blog — admin only, create post */
 router.post("/cms/blog", requireAuth, requireAdmin, async (req, res) => {
-  const { title, category, postDate, readTime, excerpt, sortOrder } = req.body as {
+  const { title, category, postDate, readTime, excerpt, sortOrder, slug, content, faq, published } = req.body as {
     title?: string; category?: string; postDate?: string;
     readTime?: string; excerpt?: string; sortOrder?: number;
+    slug?: string; content?: unknown[]; faq?: unknown[]; published?: boolean;
   };
 
   if (!title) { res.status(400).json({ error: "Başlık zorunludur" }); return; }
+
+  const finalSlug = (slug?.trim() || makeSlug(title)) || null;
 
   try {
     const [post] = await db
@@ -42,11 +88,20 @@ router.post("/cms/blog", requireAuth, requireAdmin, async (req, res) => {
         readTime:  readTime  ?? "",
         excerpt:   excerpt   ?? "",
         sortOrder: sortOrder ?? 0,
+        slug:      finalSlug,
+        content:   (content  ?? []) as never,
+        faq:       (faq      ?? []) as never,
+        published: published ?? false,
       })
       .returning();
     res.status(201).json({ post });
-  } catch {
-    res.status(500).json({ error: "Blog yazısı oluşturulamadı" });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("unique") || msg.includes("duplicate")) {
+      res.status(409).json({ error: "Bu slug zaten kullanımda, farklı bir slug girin." });
+    } else {
+      res.status(500).json({ error: "Blog yazısı oluşturulamadı" });
+    }
   }
 });
 
@@ -55,7 +110,7 @@ router.put("/cms/blog/:id", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Geçersiz ID" }); return; }
 
-  const { title, category, postDate, readTime, excerpt, sortOrder } = req.body;
+  const { title, category, postDate, readTime, excerpt, sortOrder, slug, content, faq, published } = req.body;
 
   try {
     const [updated] = await db
@@ -67,6 +122,10 @@ router.put("/cms/blog/:id", requireAuth, requireAdmin, async (req, res) => {
         ...(readTime  !== undefined && { readTime }),
         ...(excerpt   !== undefined && { excerpt }),
         ...(sortOrder !== undefined && { sortOrder }),
+        ...(slug      !== undefined && { slug: slug?.trim() || null }),
+        ...(content   !== undefined && { content: content as never }),
+        ...(faq       !== undefined && { faq: faq as never }),
+        ...(published !== undefined && { published }),
         updatedAt: new Date(),
       })
       .where(eq(cmsBlogPostsTable.id, id))
@@ -74,8 +133,13 @@ router.put("/cms/blog/:id", requireAuth, requireAdmin, async (req, res) => {
 
     if (!updated) { res.status(404).json({ error: "Yazı bulunamadı" }); return; }
     res.json({ post: updated });
-  } catch {
-    res.status(500).json({ error: "Güncelleme sırasında hata oluştu" });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("unique") || msg.includes("duplicate")) {
+      res.status(409).json({ error: "Bu slug zaten kullanımda, farklı bir slug girin." });
+    } else {
+      res.status(500).json({ error: "Güncelleme sırasında hata oluştu" });
+    }
   }
 });
 

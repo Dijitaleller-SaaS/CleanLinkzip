@@ -81065,6 +81065,10 @@ var cmsBlogPostsTable = pgTable("cms_blog_posts", {
   readTime: varchar("read_time", { length: 30 }).notNull().default(""),
   excerpt: text("excerpt").notNull().default(""),
   sortOrder: integer("sort_order").notNull().default(0),
+  slug: varchar("slug", { length: 255 }),
+  content: jsonb("content").notNull().default([]),
+  faq: jsonb("faq").notNull().default([]),
+  published: boolean("published").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -83014,7 +83018,18 @@ var admin_default = router7;
 // src/routes/cms.ts
 var import_express8 = __toESM(require_express2(), 1);
 var router8 = (0, import_express8.Router)();
+function makeSlug(title) {
+  return title.toLowerCase().replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s").replace(/ı/g, "i").replace(/ö/g, "o").replace(/ç/g, "c").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 200);
+}
 router8.get("/cms/blog", async (_req, res) => {
+  try {
+    const posts = await db.select().from(cmsBlogPostsTable).where(eq(cmsBlogPostsTable.published, true)).orderBy(asc(cmsBlogPostsTable.sortOrder), asc(cmsBlogPostsTable.createdAt));
+    res.json({ posts });
+  } catch {
+    res.status(500).json({ error: "Blog yaz\u0131lar\u0131 y\xFCklenemedi" });
+  }
+});
+router8.get("/cms/blog/all", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const posts = await db.select().from(cmsBlogPostsTable).orderBy(asc(cmsBlogPostsTable.sortOrder), asc(cmsBlogPostsTable.createdAt));
     res.json({ posts });
@@ -83022,12 +83037,26 @@ router8.get("/cms/blog", async (_req, res) => {
     res.status(500).json({ error: "Blog yaz\u0131lar\u0131 y\xFCklenemedi" });
   }
 });
+router8.get("/cms/blog/:slug", async (req, res) => {
+  const slug = String(req.params.slug);
+  try {
+    const [post] = await db.select().from(cmsBlogPostsTable).where(and(eq(cmsBlogPostsTable.slug, slug), eq(cmsBlogPostsTable.published, true))).limit(1);
+    if (!post) {
+      res.status(404).json({ error: "Yaz\u0131 bulunamad\u0131" });
+      return;
+    }
+    res.json({ post });
+  } catch {
+    res.status(500).json({ error: "Blog yaz\u0131s\u0131 y\xFCklenemedi" });
+  }
+});
 router8.post("/cms/blog", requireAuth, requireAdmin, async (req, res) => {
-  const { title, category, postDate, readTime, excerpt, sortOrder } = req.body;
+  const { title, category, postDate, readTime, excerpt, sortOrder, slug, content, faq, published } = req.body;
   if (!title) {
     res.status(400).json({ error: "Ba\u015Fl\u0131k zorunludur" });
     return;
   }
+  const finalSlug = slug?.trim() || makeSlug(title) || null;
   try {
     const [post] = await db.insert(cmsBlogPostsTable).values({
       title,
@@ -83035,11 +83064,20 @@ router8.post("/cms/blog", requireAuth, requireAdmin, async (req, res) => {
       postDate: postDate ?? "",
       readTime: readTime ?? "",
       excerpt: excerpt ?? "",
-      sortOrder: sortOrder ?? 0
+      sortOrder: sortOrder ?? 0,
+      slug: finalSlug,
+      content: content ?? [],
+      faq: faq ?? [],
+      published: published ?? false
     }).returning();
     res.status(201).json({ post });
-  } catch {
-    res.status(500).json({ error: "Blog yaz\u0131s\u0131 olu\u015Fturulamad\u0131" });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("unique") || msg.includes("duplicate")) {
+      res.status(409).json({ error: "Bu slug zaten kullan\u0131mda, farkl\u0131 bir slug girin." });
+    } else {
+      res.status(500).json({ error: "Blog yaz\u0131s\u0131 olu\u015Fturulamad\u0131" });
+    }
   }
 });
 router8.put("/cms/blog/:id", requireAuth, requireAdmin, async (req, res) => {
@@ -83048,7 +83086,7 @@ router8.put("/cms/blog/:id", requireAuth, requireAdmin, async (req, res) => {
     res.status(400).json({ error: "Ge\xE7ersiz ID" });
     return;
   }
-  const { title, category, postDate, readTime, excerpt, sortOrder } = req.body;
+  const { title, category, postDate, readTime, excerpt, sortOrder, slug, content, faq, published } = req.body;
   try {
     const [updated] = await db.update(cmsBlogPostsTable).set({
       ...title !== void 0 && { title },
@@ -83057,6 +83095,10 @@ router8.put("/cms/blog/:id", requireAuth, requireAdmin, async (req, res) => {
       ...readTime !== void 0 && { readTime },
       ...excerpt !== void 0 && { excerpt },
       ...sortOrder !== void 0 && { sortOrder },
+      ...slug !== void 0 && { slug: slug?.trim() || null },
+      ...content !== void 0 && { content },
+      ...faq !== void 0 && { faq },
+      ...published !== void 0 && { published },
       updatedAt: /* @__PURE__ */ new Date()
     }).where(eq(cmsBlogPostsTable.id, id)).returning();
     if (!updated) {
@@ -83064,8 +83106,13 @@ router8.put("/cms/blog/:id", requireAuth, requireAdmin, async (req, res) => {
       return;
     }
     res.json({ post: updated });
-  } catch {
-    res.status(500).json({ error: "G\xFCncelleme s\u0131ras\u0131nda hata olu\u015Ftu" });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("unique") || msg.includes("duplicate")) {
+      res.status(409).json({ error: "Bu slug zaten kullan\u0131mda, farkl\u0131 bir slug girin." });
+    } else {
+      res.status(500).json({ error: "G\xFCncelleme s\u0131ras\u0131nda hata olu\u015Ftu" });
+    }
   }
 });
 router8.delete("/cms/blog/:id", requireAuth, requireAdmin, async (req, res) => {
