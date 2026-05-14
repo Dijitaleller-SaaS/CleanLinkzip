@@ -139,7 +139,7 @@ Google'ın sitenizi daha iyi anlaması için schema verileri eklendi/güçlendir
 
 ---
 
-## Özet Tablo
+## Özet Tablo — 13 Mayıs 2026
 
 | # | Yapılan İş | Durum |
 |---|---|---|
@@ -154,3 +154,138 @@ Google'ın sitenizi daha iyi anlaması için schema verileri eklendi/güçlendir
 | 9 | robots.txt — bot erişim kuralları | ✅ Tamamlandı |
 | 10 | sitemap.xml — 20+ sayfa, blog + firma profilleri | ✅ Tamamlandı |
 | 11 | JSON-LD yapısal veri (blog, firma, pilot, ana sayfa) | ✅ Tamamlandı |
+
+---
+
+## 📅 14 Mayıs 2026
+
+---
+
+## 6. Proje Veri Dosyaları Oluşturuldu
+
+### Ne Yapıldı?
+Projenin tüm verilerini tek bir yerde toplayacak referans dosyaları oluşturuldu.
+
+### Detaylar:
+- **`çalışma-dosyası.md`** oluşturuldu: Hesaplar, mimari, DB tabloları, API endpoint'leri, SEO durumu, abonelik paketleri, yapılacaklar listesi — tüm proje bilgileri tek dosyada.
+- İlk denemede dosya adı yanlış (`çalışma-dostası.md`) oluşturuldu, kullanıcı uyarısı üzerine `çalışma-dosyası.md` olarak düzeltildi.
+
+---
+
+## 7. OpenGraph & Sosyal Medya Bot Uyumluluğu — Kapsamlı İyileştirme
+
+### Ne Yapıldı?
+5 ayrı teknik düzenleme ile sosyal medya botlarının (Facebook, WhatsApp, LinkedIn, Twitter vb.) sitenin içeriğini daha iyi okuması sağlandı.
+
+---
+
+### 7.1 react-helmet-async Entegrasyonu
+
+**Dosyalar:** `src/context/SEOContext.tsx` (yeni), `src/hooks/useSEO.ts`, `src/main.tsx`, `src/App.tsx`
+
+- `SEOContext.tsx` oluşturuldu: Tüm OG meta etiketlerini yöneten merkezi bir React context + Helmet bileşeni.
+- `HelmetProvider` → `main.tsx`'e eklendi.
+- `SEOProvider` → `App.tsx`'e eklendi (tüm uygulamayı sarıyor).
+- `useSEO` hook'u artık hem DOM manipülasyonu hem de Helmet context'ini aynı anda güncelliyor.
+- OG görsel boyutu `1280×720` → `1200×630` olarak düzeltildi (Facebook/WhatsApp standardı).
+
+---
+
+### 7.2 Sayfa Bazlı OG Görselleri — 1200×630 px
+
+**Dosyalar:** `public/opengraph-1200.png`, `public/og-pilot.png`, `pages/PilotSartlari.tsx`, `index.html`
+
+- AI ile 2 adet profesyonel OG banner görseli üretildi (16:9 oran, ~700-850 KB):
+  - `/opengraph-1200.png` → Ana sayfa için teal/turkuaz tasarımlı banner
+  - `/og-pilot.png` → Pilot Şartları sayfası için roket ikonlu özel banner
+- `PilotSartlari.tsx`'te `ogImage` güncellendi: artık ana sayfa görseli değil kendi özel görseli kullanılıyor.
+- `index.html` statik OG boyutları düzeltildi.
+
+---
+
+### 7.3 robots.txt — Bot Optimizasyonu
+
+**Dosya:** `public/robots.txt`
+
+Yeni eklenen bot tanımları:
+
+| Bot | Amaç |
+|-----|------|
+| DuckDuckBot | DuckDuckGo arama motoru |
+| Slurp | Yahoo arama motoru |
+| Baiduspider | Çin arama motoru |
+| YandexBot | Rus arama motoru |
+| Discordbot | Discord önizlemesi |
+| Telegrambot | Telegram önizlemesi |
+| Pinterest | Pinterest önizlemesi |
+| vkShare | VKontakte önizlemesi |
+| Slackbot | Slack önizlemesi |
+| SkypeUriPreview | Skype önizlemesi |
+
+OG görselleri (`opengraph.jpg`, `opengraph-1200.png`, `og-pilot.png`) tüm botlar için `Allow:` ile güvenceye alındı.
+
+---
+
+### 7.4 Audit Log Entegrasyonu — IP + Zaman Damgası
+
+**Dosyalar:** `api-server/src/routes/og-audit.ts` (yeni), `api-server/src/routes/index.ts`
+
+- `POST /api/og-audit` endpoint'i oluşturuldu.
+- `useSEO` hook'u her sayfa render edildiğinde bu endpoint'i `keepalive: true` ile çağırıyor.
+- Sunucu loglarına şunlar yazılıyor: `type: og-audit`, `ip`, `ts` (zaman damgası), `page` (URL), `title`, `description` (ilk 100 karakter), `image`.
+- Test: `HTTP 204` ✅
+
+**Örnek log çıktısı:**
+```json
+{
+  "type": "og-audit",
+  "ip": "::1",
+  "ts": "2026-05-14T00:15:17.947Z",
+  "page": "https://cleanlinktr.com/",
+  "title": "CleanLink — Profesyonel Ev, Ofis, Koltuk ve Halı Temizliği",
+  "description": "CleanLink ile eviniz, ofisiniz...",
+  "image": "https://cleanlinktr.com/opengraph.jpg"
+}
+```
+
+---
+
+### 7.5 Bot Middleware — Express Header Yapılandırması
+
+**Dosya:** `api-server/src/app.ts`
+
+Express'e sosyal medya bot tespiti için middleware eklendi. 18 farklı bot user-agent tanımlandı:
+
+```
+facebookexternalhit, facebot, twitterbot, linkedinbot, whatsapp,
+slurp, duckduckbot, applebot, discordbot, telegrambot, skypeuri,
+pinterest, vkshare, w3c_validator, baiduspider, yandexbot, msnbot
+```
+
+Bot tespit edildiğinde otomatik olarak gönderilen header'lar:
+
+| Header | Değer | Etki |
+|--------|-------|------|
+| `Vary: User-Agent` | — | CDN'e "UA'ya göre farklı yanıt ver" sinyali |
+| `Cache-Control: no-store` | — | Cloudflare'in eski/challenge sayfasını cache'lememesi |
+| `X-Robots-Tag: index, follow` | — | Bota doğrudan indekslenebilirlik sinyali |
+
+Test çıktısı (`facebookexternalhit` UA ile istek):
+```
+Vary: User-Agent          ✅
+Cache-Control: no-store   ✅
+X-Robots-Tag: index,follow ✅
+```
+
+---
+
+## Özet Tablo — 14 Mayıs 2026
+
+| # | Yapılan İş | Durum |
+|---|---|---|
+| 1 | `çalışma-dosyası.md` proje veri dosyası oluşturuldu | ✅ Tamamlandı |
+| 2 | react-helmet-async — SEOContext + HelmetProvider entegrasyonu | ✅ Tamamlandı |
+| 3 | OG görselleri 1200×630 px (homepage + pilot sayfa) | ✅ Tamamlandı |
+| 4 | robots.txt — 10 yeni bot eklendi, OG görselleri izne alındı | ✅ Tamamlandı |
+| 5 | Audit Log — `/api/og-audit` endpoint, IP + zaman damgası | ✅ Tamamlandı |
+| 6 | Bot middleware — 18 bot UA tespiti, 3 özel header | ✅ Tamamlandı |
