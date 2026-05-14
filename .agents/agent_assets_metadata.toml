@@ -6,3 +6,9 @@ id = "jYn4-mjpMVQjR20eJcDMF"
 uri = "file://CALISMA_GUNLUGU.md"
 type = "text"
 title = "CleanLink — 13 Mayıs 2026 Çalışma Günlüğü"
+
+[[outputs]]
+id = "-sr3Y4nkeOfTu_Rx5tYDO"
+uri = "file://çalışma-dostası.md"
+type = "text"
+title = "CleanLink — Çalışma Dostuşı"
