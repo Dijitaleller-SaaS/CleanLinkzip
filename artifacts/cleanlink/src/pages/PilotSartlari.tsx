@@ -67,7 +67,7 @@ export default function PilotSartlari() {
     title: "İş Ortaklığı & Pilot Program — Temizlik Firmanızı Dijitalleştirin",
     description: "CleanLink pilot programına katılın. Temizlik firmanızı dijitalleştirin, yeni müşteriler kazanın, rezervasyonlarınızı yönetin. Aylık 999 TL ile vitrine çıkın.",
     canonical: "/pilot-sartlari",
-    ogImage: "https://cleanlinktr.com/opengraph.jpg",
+    ogImage: "https://cleanlinktr.com/og-pilot.png",
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "Service",

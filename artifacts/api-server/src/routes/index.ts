@@ -13,6 +13,7 @@ import sitemapRouter from "./sitemap";
 import couponsRouter from "./coupons";
 import paytrRouter from "./paytr";
 import bayiRouter from "./bayi";
+import ogAuditRouter from "./og-audit";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(sitemapRouter);
 router.use(couponsRouter);
 router.use(paytrRouter);
 router.use(bayiRouter);
+router.use(ogAuditRouter);
 
 export default router;

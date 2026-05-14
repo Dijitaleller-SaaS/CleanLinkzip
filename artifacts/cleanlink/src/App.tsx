@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider, useApp } from "@/context/AppContext";
+import { SEOProvider } from "@/context/SEOContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { GoogleConsentModal } from "@/components/auth/GoogleConsentModal";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
@@ -480,9 +481,11 @@ function AppInner() {
 
 function App() {
   return (
-    <AppProvider>
-      <AppInner />
-    </AppProvider>
+    <SEOProvider>
+      <AppProvider>
+        <AppInner />
+      </AppProvider>
+    </SEOProvider>
   );
 }
 

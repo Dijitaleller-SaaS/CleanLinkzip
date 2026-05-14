@@ -20502,27 +20502,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router16;
+    module.exports = Router17;
     module.exports.Route = Route;
-    function Router16(options) {
-      if (!(this instanceof Router16)) {
-        return new Router16(options);
+    function Router17(options) {
+      if (!(this instanceof Router17)) {
+        return new Router17(options);
       }
       const opts = options || {};
-      function router16(req, res, next) {
-        router16.handle(req, res, next);
+      function router17(req, res, next) {
+        router17.handle(req, res, next);
       }
-      Object.setPrototypeOf(router16, this);
-      router16.caseSensitive = opts.caseSensitive;
-      router16.mergeParams = opts.mergeParams;
-      router16.params = {};
-      router16.strict = opts.strict;
-      router16.stack = [];
-      return router16;
+      Object.setPrototypeOf(router17, this);
+      router17.caseSensitive = opts.caseSensitive;
+      router17.mergeParams = opts.mergeParams;
+      router17.params = {};
+      router17.strict = opts.strict;
+      router17.stack = [];
+      return router17;
     }
-    Router16.prototype = function() {
+    Router17.prototype = function() {
     };
-    Router16.prototype.param = function param(name, fn) {
+    Router17.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20542,7 +20542,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router16.prototype.handle = function handle(req, res, callback) {
+    Router17.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20669,7 +20669,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router16.prototype.use = function use(handler) {
+    Router17.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20702,7 +20702,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router16.prototype.route = function route(path2) {
+    Router17.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20717,7 +20717,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router16.prototype[method] = function(path2) {
+      Router17.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20900,13 +20900,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router16 = require_router();
+    var Router17 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router16 = null;
+      var router17 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20915,13 +20915,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router16 === null) {
-            router16 = new Router16({
+          if (router17 === null) {
+            router17 = new Router17({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router16;
+          return router17;
         }
       });
     };
@@ -20992,15 +20992,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router16 = this.router;
+      var router17 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router16.use(path2, fn2);
+          return router17.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router16.use(path2, function mounted_app(req, res, next) {
+        router17.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23527,7 +23527,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router16 = require_router();
+    var Router17 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23549,8 +23549,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router16.Route;
-    exports.Router = Router16;
+    exports.Route = Router17.Route;
+    exports.Router = Router17;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -55858,14 +55858,14 @@ var require_src5 = __commonJS({
 });
 
 // src/app.ts
-var import_express16 = __toESM(require_express2(), 1);
+var import_express17 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
 import { existsSync } from "fs";
 
 // src/routes/index.ts
-var import_express15 = __toESM(require_express2(), 1);
+var import_express16 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -83806,32 +83806,91 @@ router14.delete("/admin/bayiler/:id", requireAuth, requireAdmin, async (req, res
 });
 var bayi_default = router14;
 
-// src/routes/index.ts
+// src/routes/og-audit.ts
+var import_express15 = __toESM(require_express2(), 1);
 var router15 = (0, import_express15.Router)();
-router15.use(health_default);
-router15.use(auth_default);
-router15.use(google_auth_default);
-router15.use(vendors_default);
-router15.use(orders_default);
-router15.use(admin_default);
-router15.use(cms_default);
-router15.use(pilot_default);
-router15.use(reviews_default);
-router15.use(notifications_default);
-router15.use(sitemap_default);
-router15.use(coupons_default);
-router15.use(paytr_default);
-router15.use(bayi_default);
-var routes_default = router15;
+router15.post("/og-audit", (req, res) => {
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.ip || req.socket.remoteAddress || "unknown";
+  const ts = (/* @__PURE__ */ new Date()).toISOString();
+  const { page, title, description, image } = req.body ?? {};
+  logger.info(
+    {
+      type: "og-audit",
+      ip,
+      ts,
+      page: page ?? "unknown",
+      title: title ?? "",
+      description: typeof description === "string" ? description.slice(0, 100) : "",
+      image: image ?? ""
+    },
+    "OG meta rendered"
+  );
+  res.status(204).end();
+});
+var og_audit_default = router15;
+
+// src/routes/index.ts
+var router16 = (0, import_express16.Router)();
+router16.use(health_default);
+router16.use(auth_default);
+router16.use(google_auth_default);
+router16.use(vendors_default);
+router16.use(orders_default);
+router16.use(admin_default);
+router16.use(cms_default);
+router16.use(pilot_default);
+router16.use(reviews_default);
+router16.use(notifications_default);
+router16.use(sitemap_default);
+router16.use(coupons_default);
+router16.use(paytr_default);
+router16.use(bayi_default);
+router16.use(og_audit_default);
+var routes_default = router16;
 
 // src/app.ts
-var app = (0, import_express16.default)();
+var app = (0, import_express17.default)();
 app.set("trust proxy", 1);
 app.use((req, res, next) => {
   const host = req.hostname;
   if (host && host.startsWith("www.")) {
     const bare = host.slice(4);
     return res.redirect(301, `https://${bare}${req.originalUrl}`);
+  }
+  next();
+});
+var SOCIAL_BOT_AGENTS = [
+  "facebookexternalhit",
+  "facebot",
+  "twitterbot",
+  "linkedinbot",
+  "whatsapp",
+  "slurp",
+  // Yahoo
+  "duckduckbot",
+  "applebot",
+  "discordbot",
+  "telegrambot",
+  "skypeuri",
+  "pinterest",
+  "vkshare",
+  "w3c_validator",
+  "baiduspider",
+  "yandexbot",
+  "msnbot"
+];
+app.use((req, res, next) => {
+  res.setHeader("Vary", "User-Agent");
+  const ua = (req.headers["user-agent"] ?? "").toLowerCase();
+  const isBot = SOCIAL_BOT_AGENTS.some((bot) => ua.includes(bot));
+  if (isBot) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("X-Robots-Tag", "index, follow");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    logger.info(
+      { ua: req.headers["user-agent"], url: req.url, ip: req.ip },
+      "Social media bot detected"
+    );
   }
   next();
 });
@@ -83855,8 +83914,8 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express16.default.json({ limit: "10mb" }));
-app.use(import_express16.default.urlencoded({ extended: true, limit: "10mb" }));
+app.use(import_express17.default.json({ limit: "10mb" }));
+app.use(import_express17.default.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/api", routes_default);
 if (process.env.NODE_ENV === "production") {
   const frontendDist = path.resolve(
@@ -83875,14 +83934,27 @@ if (process.env.NODE_ENV === "production") {
     });
     app.use(
       "/assets",
-      import_express16.default.static(path.join(frontendDist, "assets"), {
+      import_express17.default.static(path.join(frontendDist, "assets"), {
         maxAge: "1y",
         immutable: true
       })
     );
-    app.use(import_express16.default.static(frontendDist, { maxAge: "1h" }));
-    app.get(/.*/, (_req, res) => {
-      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    app.use(
+      "/opengraph",
+      (_req, res, next) => {
+        res.setHeader("Cache-Control", "public, max-age=3600, must-revalidate");
+        next();
+      },
+      import_express17.default.static(frontendDist)
+    );
+    app.use(import_express17.default.static(frontendDist, { maxAge: "1h" }));
+    app.get(/.*/, (req, res) => {
+      const ua = (req.headers["user-agent"] ?? "").toLowerCase();
+      const isBot = SOCIAL_BOT_AGENTS.some((bot) => ua.includes(bot));
+      res.setHeader(
+        "Cache-Control",
+        isBot ? "no-store, no-cache, must-revalidate" : "no-store, no-cache, must-revalidate"
+      );
       res.sendFile(path.join(frontendDist, "index.html"));
     });
     logger.info({ frontendDist }, "Serving frontend static files");

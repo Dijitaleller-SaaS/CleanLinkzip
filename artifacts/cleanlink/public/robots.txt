@@ -4,27 +4,9 @@ Disallow: /admin-dashboard
 Disallow: /firma-dashboard
 Disallow: /sifre-sifirla
 Disallow: /api/
-
 Crawl-delay: 1
 
-# Social media crawlers — full access
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: Facebot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: LinkedInBot
-Allow: /
-
-User-agent: WhatsApp
-Allow: /
-
-User-agent: Applebot
-Allow: /
+# ── Arama motorları ──────────────────────────────────────────────────────────
 
 User-agent: Googlebot
 Allow: /
@@ -33,11 +15,93 @@ Disallow: /firma-dashboard
 Disallow: /sifre-sifirla
 Disallow: /api/
 
+User-agent: Googlebot-Image
+Allow: /
+Allow: /opengraph.jpg
+Allow: /opengraph-1200.png
+Allow: /og-pilot.png
+
 User-agent: Bingbot
 Allow: /
 Disallow: /admin-dashboard
 Disallow: /firma-dashboard
 Disallow: /sifre-sifirla
 Disallow: /api/
+
+User-agent: Slurp
+Allow: /
+Disallow: /admin-dashboard
+Disallow: /api/
+
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /admin-dashboard
+Disallow: /api/
+
+User-agent: Baiduspider
+Allow: /
+Disallow: /admin-dashboard
+Disallow: /api/
+
+User-agent: YandexBot
+Allow: /
+Disallow: /admin-dashboard
+Disallow: /api/
+
+User-agent: Applebot
+Allow: /
+
+# ── Sosyal medya botları — tam erişim ───────────────────────────────────────
+
+User-agent: facebookexternalhit
+Allow: /
+Disallow:
+
+User-agent: Facebot
+Allow: /
+Disallow:
+
+User-agent: Twitterbot
+Allow: /
+Disallow:
+
+User-agent: LinkedInBot
+Allow: /
+Disallow:
+
+User-agent: WhatsApp
+Allow: /
+Disallow:
+
+User-agent: Discordbot
+Allow: /
+Disallow:
+
+User-agent: Telegrambot
+Allow: /
+Disallow:
+
+User-agent: Pinterest
+Allow: /
+Disallow:
+
+User-agent: vkShare
+Allow: /
+Disallow:
+
+User-agent: Slackbot
+Allow: /
+Disallow:
+
+User-agent: SkypeUriPreview
+Allow: /
+Disallow:
+
+# ── OG görselleri ayrıca izin ver ───────────────────────────────────────────
+Allow: /opengraph.jpg
+Allow: /opengraph-1200.png
+Allow: /og-pilot.png
+Allow: /favicon.svg
+Allow: /icon-192.png
 
 Sitemap: https://cleanlinktr.com/sitemap.xml

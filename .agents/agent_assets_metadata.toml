@@ -1,5 +1,16 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "l7c3XYsxzwwCdutnKnqN9"
+uri = "file://attached_assets/generated_images/opengraph-new.png"
+type = "image"
+title = "cleanlink og homepage banner"
+
+[[generated]]
+id = "R-9ZMlLGOVcDez-jpU4rd"
+uri = "file://attached_assets/generated_images/og-pilot.png"
+type = "image"
+title = "cleanlink og pilot banner"
 
 [[outputs]]
 id = "jYn4-mjpMVQjR20eJcDMF"
