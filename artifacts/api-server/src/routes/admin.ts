@@ -649,4 +649,30 @@ router.delete("/admin/users/:userId", async (req, res) => {
   }
 });
 
+/* PATCH /api/admin/vendors/:id/media — admin updates gallery and cert URLs for a vendor */
+router.patch("/admin/vendors/:id/media", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Geçersiz firma ID" }); return; }
+  const { galleryUrls, certUrls } = req.body;
+  if (!Array.isArray(galleryUrls) && !Array.isArray(certUrls)) {
+    res.status(400).json({ error: "galleryUrls veya certUrls gerekli" });
+    return;
+  }
+  try {
+    const [updated] = await db
+      .update(vendorProfilesTable)
+      .set({
+        ...(Array.isArray(galleryUrls) && { galleryUrls }),
+        ...(Array.isArray(certUrls)    && { certUrls }),
+        updatedAt: new Date(),
+      })
+      .where(eq(vendorProfilesTable.id, id))
+      .returning({ id: vendorProfilesTable.id });
+    if (!updated) { res.status(404).json({ error: "Firma bulunamadı" }); return; }
+    res.json({ ok: true, id: updated.id });
+  } catch {
+    res.status(500).json({ error: "Güncelleme sırasında hata oluştu" });
+  }
+});
+
 export default router;

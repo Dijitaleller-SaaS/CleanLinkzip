@@ -279,6 +279,35 @@ X-Robots-Tag: index,follow ✅
 
 ---
 
+---
+
+## 7. Gün Temizlik Hizmetleri — Galeri & Sertifika Kurtarma
+
+### Ne Yapıldı?
+
+Production DB'de `vendor_profiles id=1` için `gallery_urls=[]` ve `cert_urls=[]` boştu — canlı sitede firma profili görselsiz ve belgesizsiz görünüyordu.
+
+### Yapılan Adımlar
+
+1. **Dev DB'den veri çekildi** — `gallery_urls[0]` (base64 JPEG, 72KB) ve `cert_urls[0]` (base64 PDF, 3.1MB) Node.js pg modülüyle okundu.
+2. **Statik dosyalar oluşturuldu:**
+   - `artifacts/cleanlink/public/firmalar/gun-temizlik/galeri-1.jpg` (72KB)
+   - `artifacts/cleanlink/public/firmalar/gun-temizlik/gun-hali-yikama-temizlik.pdf` (3.1MB)
+3. **Dev DB güncellendi** — `gallery_urls` ve `cert_urls` artık base64 değil dosya URL'i içeriyor:
+   - Gallery: `["/firmalar/gun-temizlik/galeri-1.jpg"]`
+   - Cert: `[{"name":"GÜN HALI YIKAMA & TEMİZLİK .pdf","fileType":"pdf","url":"/firmalar/gun-temizlik/..."}]`
+4. **Admin endpoint eklendi** — `PATCH /api/admin/vendors/:id/media` (admin kimlik doğrulama gerekli)
+5. **Startup seed eklendi** — API server başlarken `vendor_profiles id=1`'in gallery/cert alanları boşsa otomatik file URL'leriyle doldurur (`index.ts` içinde `seedVendorOneMedia()`). Production'a deploy edildiğinde kendiliğinden düzelecek.
+6. **Dev'de doğrulandı** — `/firmalar` sayfasında Gün Temizlik kartında "1 fotoğraf" ibaresi görünüyor ✅
+
+### Sonuç
+
+- Dev sunucu: galeri görsel + PDF sertifika çalışıyor ✅
+- Production: **deploy sonrası startup seed otomatik düzeltecek** ✅
+- Artık base64 veri DB'de tutulmuyor — statik dosya URL'leri kullanılıyor (performans artışı)
+
+---
+
 ## Özet Tablo — 14 Mayıs 2026
 
 | # | Yapılan İş | Durum |
@@ -289,3 +318,4 @@ X-Robots-Tag: index,follow ✅
 | 4 | robots.txt — 10 yeni bot eklendi, OG görselleri izne alındı | ✅ Tamamlandı |
 | 5 | Audit Log — `/api/og-audit` endpoint, IP + zaman damgası | ✅ Tamamlandı |
 | 6 | Bot middleware — 18 bot UA tespiti, 3 özel header | ✅ Tamamlandı |
+| 7 | Gün Temizlik galeri/sertifika kurtarma — statik dosyalar + startup seed | ✅ Tamamlandı |

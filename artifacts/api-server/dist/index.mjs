@@ -83013,6 +83013,32 @@ router7.delete("/admin/users/:userId", async (req, res) => {
     res.status(500).json({ error: "Kullan\u0131c\u0131 silinirken hata olu\u015Ftu" });
   }
 });
+router7.patch("/admin/vendors/:id/media", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Ge\xE7ersiz firma ID" });
+    return;
+  }
+  const { galleryUrls, certUrls } = req.body;
+  if (!Array.isArray(galleryUrls) && !Array.isArray(certUrls)) {
+    res.status(400).json({ error: "galleryUrls veya certUrls gerekli" });
+    return;
+  }
+  try {
+    const [updated] = await db.update(vendorProfilesTable).set({
+      ...Array.isArray(galleryUrls) && { galleryUrls },
+      ...Array.isArray(certUrls) && { certUrls },
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(vendorProfilesTable.id, id)).returning({ id: vendorProfilesTable.id });
+    if (!updated) {
+      res.status(404).json({ error: "Firma bulunamad\u0131" });
+      return;
+    }
+    res.json({ ok: true, id: updated.id });
+  } catch {
+    res.status(500).json({ error: "G\xFCncelleme s\u0131ras\u0131nda hata olu\u015Ftu" });
+  }
+});
 var admin_default = router7;
 
 // src/routes/cms.ts
@@ -84120,12 +84146,31 @@ var port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
-app_default.listen(port, (err) => {
+async function seedVendorOneMedia() {
+  try {
+    const [profile] = await db.select({ id: vendorProfilesTable.id, galleryUrls: vendorProfilesTable.galleryUrls, certUrls: vendorProfilesTable.certUrls }).from(vendorProfilesTable).where(eq(vendorProfilesTable.id, 1)).limit(1);
+    if (!profile) return;
+    const galleryEmpty = !profile.galleryUrls || profile.galleryUrls.length === 0;
+    const certEmpty = !profile.certUrls || profile.certUrls.length === 0;
+    if (!galleryEmpty && !certEmpty) {
+      logger.info("Vendor #1 media already seeded, skipping.");
+      return;
+    }
+    const galleryUrls = galleryEmpty ? ["/firmalar/gun-temizlik/galeri-1.jpg"] : profile.galleryUrls;
+    const certUrls = certEmpty ? [JSON.stringify({ name: "G\xDCN HALI YIKAMA & TEM\u0130ZL\u0130K .pdf", fileType: "pdf", url: "/firmalar/gun-temizlik/gun-hali-yikama-temizlik.pdf" })] : profile.certUrls;
+    await db.update(vendorProfilesTable).set({ galleryUrls, certUrls, updatedAt: /* @__PURE__ */ new Date() }).where(eq(vendorProfilesTable.id, 1));
+    logger.info({ galleryCount: galleryUrls.length, certCount: certUrls.length }, "Vendor #1 media seeded.");
+  } catch (err) {
+    logger.error({ err }, "Failed to seed vendor #1 media \u2014 continuing startup.");
+  }
+}
+app_default.listen(port, async (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
   }
   logger.info({ port }, "Server listening");
+  await seedVendorOneMedia();
   startSubscriptionReminderJob();
 });
 /*! Bundled license information:
