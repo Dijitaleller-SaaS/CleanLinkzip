@@ -24,7 +24,7 @@ import {
   apiAdminGetPilotApplications, apiAdminDeletePilotApplication,
   apiAdminGetOrders, apiAdminUpdateOrderStatus,
   apiAdminGetTransactionAuditLog, apiAdminDeleteUser, apiAdminDeleteUserByEmail,
-  apiAdminGetUsers, type AdminUser,
+  apiAdminGetUsers, apiAdminSetUserPassword, type AdminUser,
   type AdminVendor, type AdminFinancial, type AdminNotifications, type CmsBlogPost, type PilotApplicationApi, type AdminOrder, type TransactionAuditLogEntry,
 } from "@/lib/api";
 
@@ -1507,6 +1507,69 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   order_iptal:      { label: "İptal Edildi",          color: "bg-rose-100 text-rose-700" },
 };
 
+function UserPasswordCell({ u, onUpdated }: { u: AdminUser; onUpdated: (id: number, pwd: string) => void }) {
+  const [show, setShow] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [newPwd, setNewPwd] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!newPwd.trim()) return;
+    setSaving(true);
+    try {
+      await apiAdminSetUserPassword(u.id, newPwd.trim());
+      onUpdated(u.id, newPwd.trim());
+      setEditing(false);
+      setNewPwd("");
+    } catch (e) { alert((e as Error).message); }
+    finally { setSaving(false); }
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <input
+          autoFocus
+          value={newPwd}
+          onChange={e => setNewPwd(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") { setEditing(false); setNewPwd(""); } }}
+          placeholder="Yeni şifre…"
+          className="text-xs border border-primary/30 rounded-lg px-2 py-1 w-28 focus:outline-none focus:ring-1 focus:ring-primary/40"
+        />
+        <button onClick={handleSave} disabled={saving || !newPwd.trim()}
+          className="text-[10px] font-bold text-white bg-primary hover:bg-primary/90 rounded-lg px-2 py-1 disabled:opacity-50 transition-colors flex items-center gap-1">
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+        </button>
+        <button onClick={() => { setEditing(false); setNewPwd(""); }}
+          className="text-[10px] font-bold text-muted-foreground hover:bg-secondary rounded-lg px-2 py-1 transition-colors">
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 flex-shrink-0">
+      {u.plainPassword ? (
+        <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+          <span className="text-[11px] font-mono text-slate-700 select-all">
+            {show ? u.plainPassword : "••••••••"}
+          </span>
+          <button onClick={() => setShow(s => !s)} className="text-slate-400 hover:text-slate-600 transition-colors ml-0.5">
+            {show ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+          </button>
+        </div>
+      ) : (
+        <span className="text-[10px] text-muted-foreground italic">{u.googleId ? "Google girişi" : "bilinmiyor"}</span>
+      )}
+      <button onClick={() => setEditing(true)} title="Şifre belirle"
+        className="text-[10px] font-semibold text-primary hover:bg-primary/5 border border-primary/20 rounded-lg px-2 py-1 transition-colors flex items-center gap-1 flex-shrink-0">
+        <Edit3 className="w-3 h-3" />
+      </button>
+    </div>
+  );
+}
+
 function KullanicilarTab() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1531,6 +1594,10 @@ function KullanicilarTab() {
       setUsers(prev => prev.filter(x => x.id !== u.id));
     } catch (e) { alert((e as Error).message); }
     finally { setDeleting(null); }
+  };
+
+  const handlePasswordUpdated = (id: number, pwd: string) => {
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, plainPassword: pwd } : u));
   };
 
   const filtered = users.filter(u => {
@@ -1579,24 +1646,27 @@ function KullanicilarTab() {
             const isBusy = deleting === u.id;
             const date = u.createdAt ? new Date(u.createdAt).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
             return (
-              <div key={u.id} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-border hover:border-primary/20 transition-colors">
-                <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+              <div key={u.id} className="flex items-start gap-3 p-3 bg-white rounded-2xl border border-border hover:border-primary/20 transition-colors">
+                <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-sm font-bold text-slate-500">{u.name?.[0]?.toUpperCase() ?? "?"}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
                     <span className="text-sm font-semibold text-foreground truncate">{u.name}</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rl.cls}`}>{rl.label}</span>
                     {u.googleId && <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Google</span>}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                  <p className="text-xs text-muted-foreground truncate mb-1.5">{u.email}</p>
+                  <UserPasswordCell u={u} onUpdated={handlePasswordUpdated} />
                 </div>
-                <div className="text-[11px] text-muted-foreground hidden sm:block flex-shrink-0">{date}</div>
-                <button onClick={() => handleDelete(u)} disabled={isBusy || u.role === "admin"}
-                  title={u.role === "admin" ? "Admin silinemez" : "Kullanıcıyı sil"}
-                  className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-1.5 disabled:opacity-40 transition-colors flex-shrink-0">
-                  {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                </button>
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <div className="text-[11px] text-muted-foreground">{date}</div>
+                  <button onClick={() => handleDelete(u)} disabled={isBusy || u.role === "admin"}
+                    title={u.role === "admin" ? "Admin silinemez" : "Kullanıcıyı sil"}
+                    className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-1.5 disabled:opacity-40 transition-colors">
+                    {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
             );
           })}

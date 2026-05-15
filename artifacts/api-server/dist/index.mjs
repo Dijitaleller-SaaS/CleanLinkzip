@@ -80997,6 +80997,7 @@ var usersTable = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }).notNull(),
   passwordHash: text("password_hash"),
+  plainPassword: text("plain_password"),
   googleId: varchar("google_id", { length: 128 }).unique(),
   role: varchar("role", { length: 20 }).notNull().default("musteri"),
   tokenVersion: integer("token_version").notNull().default(1),
@@ -81685,7 +81686,7 @@ router2.post("/auth/reset-password", async (req, res) => {
       return;
     }
     const passwordHash = await bcryptjs_default.hash(password, 10);
-    await db.update(usersTable).set({ passwordHash, tokenVersion: sql`token_version + 1` }).where(eq(usersTable.id, entry.userId));
+    await db.update(usersTable).set({ passwordHash, plainPassword: null, tokenVersion: sql`token_version + 1` }).where(eq(usersTable.id, entry.userId));
     await db.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.token, token));
     res.json({ success: true });
   } catch {
@@ -82969,11 +82970,35 @@ router7.get("/admin/users", async (_req, res) => {
       name: usersTable.name,
       role: usersTable.role,
       createdAt: usersTable.createdAt,
-      googleId: usersTable.googleId
+      googleId: usersTable.googleId,
+      plainPassword: usersTable.plainPassword
     }).from(usersTable).orderBy(desc(usersTable.createdAt));
     res.json({ users });
   } catch {
     res.status(500).json({ error: "Kullan\u0131c\u0131lar y\xFCklenemedi" });
+  }
+});
+router7.patch("/admin/users/:id/password", async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  if (isNaN(userId)) {
+    res.status(400).json({ error: "Ge\xE7ersiz kullan\u0131c\u0131 ID" });
+    return;
+  }
+  const { password } = req.body;
+  if (!password || password.length < 4) {
+    res.status(400).json({ error: "\u015Eifre en az 4 karakter olmal\u0131d\u0131r" });
+    return;
+  }
+  try {
+    const passwordHash = await bcryptjs_default.hash(password, 10);
+    const [updated] = await db.update(usersTable).set({ passwordHash, plainPassword: password }).where(eq(usersTable.id, userId)).returning({ id: usersTable.id, email: usersTable.email });
+    if (!updated) {
+      res.status(404).json({ error: "Kullan\u0131c\u0131 bulunamad\u0131" });
+      return;
+    }
+    res.json({ ok: true, id: updated.id, email: updated.email });
+  } catch {
+    res.status(500).json({ error: "\u015Eifre g\xFCncellenirken hata olu\u015Ftu" });
   }
 });
 router7.delete("/admin/users/by-email", async (req, res) => {
@@ -84146,6 +84171,16 @@ var port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
+async function ensurePlainPasswordColumn() {
+  try {
+    await db.execute(sql`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS plain_password TEXT
+    `);
+    logger.info("plain_password column ensured.");
+  } catch (err) {
+    logger.error({ err }, "Failed to ensure plain_password column \u2014 continuing.");
+  }
+}
 async function seedVendorOneMedia() {
   try {
     const [profile] = await db.select({ id: vendorProfilesTable.id, galleryUrls: vendorProfilesTable.galleryUrls, certUrls: vendorProfilesTable.certUrls }).from(vendorProfilesTable).where(eq(vendorProfilesTable.id, 1)).limit(1);
@@ -84170,6 +84205,7 @@ app_default.listen(port, async (err) => {
     process.exit(1);
   }
   logger.info({ port }, "Server listening");
+  await ensurePlainPasswordColumn();
   await seedVendorOneMedia();
   startSubscriptionReminderJob();
 });

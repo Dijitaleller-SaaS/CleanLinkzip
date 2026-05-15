@@ -2,7 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startSubscriptionReminderJob } from "./jobs/subscriptionReminder";
 import { db, vendorProfilesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 const rawPort = process.env["PORT"];
 
@@ -16,6 +16,19 @@ const port = Number(rawPort);
 
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
+}
+
+/* ── Startup: ensure plain_password column exists (migration) ──────────────
+   Added after initial schema creation — safe to run multiple times.         */
+async function ensurePlainPasswordColumn(): Promise<void> {
+  try {
+    await db.execute(sql`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS plain_password TEXT
+    `);
+    logger.info("plain_password column ensured.");
+  } catch (err) {
+    logger.error({ err }, "Failed to ensure plain_password column — continuing.");
+  }
 }
 
 /* ── Startup: seed vendor #1 gallery/cert URLs if empty ────────────────────
@@ -68,6 +81,7 @@ app.listen(port, async (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  await ensurePlainPasswordColumn();
   await seedVendorOneMedia();
   startSubscriptionReminderJob();
 });

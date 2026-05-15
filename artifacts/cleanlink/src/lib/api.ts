@@ -245,11 +245,16 @@ export interface AdminUser {
   role: string;
   createdAt: string | null;
   googleId: string | null;
+  plainPassword: string | null;
 }
 
 export async function apiAdminGetUsers(): Promise<AdminUser[]> {
   const data = await request<{ users: AdminUser[] }>("GET", "/admin/users", undefined, true);
   return data.users;
+}
+
+export async function apiAdminSetUserPassword(userId: number, password: string): Promise<void> {
+  await request("PATCH", `/admin/users/${userId}/password`, { password }, true);
 }
 
 export async function apiAdminRemoveSubscription(vendorId: number): Promise<AdminVendor> {

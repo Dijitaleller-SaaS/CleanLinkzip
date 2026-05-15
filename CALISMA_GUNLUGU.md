@@ -308,7 +308,44 @@ Production DB'de `vendor_profiles id=1` için `gallery_urls=[]` ve `cert_urls=[]
 
 ---
 
-## Özet Tablo — 14 Mayıs 2026
+---
+
+## 8. Admin Paneli — Kullanıcı Şifre Yönetimi (15 Mayıs 2026)
+
+### Ne Yapıldı?
+
+Admin panelindeki Kullanıcılar sekmesine şifre görüntüleme ve değiştirme özelliği eklendi.
+
+### Yapılan Değişiklikler
+
+**Veritabanı:**
+- `users` tablosuna `plain_password TEXT` sütunu eklendi (migration: startup'ta `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`)
+
+**Backend (`admin.ts`):**
+- `GET /admin/users` — artık `plainPassword` alanını da döndürüyor
+- `PATCH /api/admin/users/:id/password` — admin bir kullanıcının şifresini belirler/değiştirir; hem bcrypt hash hem plain metin güncellenir
+
+**Auth (`auth.ts`):**
+- Kullanıcı kendi şifresini sıfırladığında `plain_password` NULL yapılır ("kullanıcı değiştirdi" sinyali)
+
+**Frontend (`AdminDashboard.tsx`):**
+- Her kullanıcı kartında şifre satırı: göz ikonu ile gizle/göster, monospace font
+- Şifre bilinmiyorsa "bilinmiyor" / sadece Google girişi olanlar için "Google girişi" yazısı
+- Kalem ikonu ile inline şifre değiştirme: input açılır, Enter veya kaydet tuşuyla API çağrısı yapılır, başarıda anında listeye yansır
+
+**API Client (`api.ts`):**
+- `AdminUser` interface'e `plainPassword: string | null` eklendi
+- `apiAdminSetUserPassword(userId, password)` yeni fonksiyonu eklendi
+
+### Mevcut Durum
+
+- Tüm mevcut hesaplar `plain_password = NULL` → panel "bilinmiyor" gösterir
+- Admin panelinden kalem ikonuyla herhangi bir kullanıcıya yeni şifre atanabilir — o andan itibaren panelde görünür
+- Şifre değiştirmek hem giriş şifresini günceller hem de panel görünümüne anında yansır
+
+---
+
+## Özet Tablo — 14-15 Mayıs 2026
 
 | # | Yapılan İş | Durum |
 |---|---|---|
@@ -319,3 +356,4 @@ Production DB'de `vendor_profiles id=1` için `gallery_urls=[]` ve `cert_urls=[]
 | 5 | Audit Log — `/api/og-audit` endpoint, IP + zaman damgası | ✅ Tamamlandı |
 | 6 | Bot middleware — 18 bot UA tespiti, 3 özel header | ✅ Tamamlandı |
 | 7 | Gün Temizlik galeri/sertifika kurtarma — statik dosyalar + startup seed | ✅ Tamamlandı |
+| 8 | Admin paneli şifre yönetimi — görüntüle + inline değiştir | ✅ Tamamlandı |

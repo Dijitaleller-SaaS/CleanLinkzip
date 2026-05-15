@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, usersTable, vendorProfilesTable, ordersTable, transactionAuditLogTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { requireAuth } from "../lib/authMiddleware";
 import { requireAdmin } from "../lib/adminMiddleware";
 import { sendMail, buildApprovalHtml } from "../lib/mailer";
@@ -604,18 +605,41 @@ router.get("/admin/users", async (_req, res) => {
   try {
     const users = await db
       .select({
-        id: usersTable.id,
-        email: usersTable.email,
-        name: usersTable.name,
-        role: usersTable.role,
-        createdAt: usersTable.createdAt,
-        googleId: usersTable.googleId,
+        id:            usersTable.id,
+        email:         usersTable.email,
+        name:          usersTable.name,
+        role:          usersTable.role,
+        createdAt:     usersTable.createdAt,
+        googleId:      usersTable.googleId,
+        plainPassword: usersTable.plainPassword,
       })
       .from(usersTable)
       .orderBy(desc(usersTable.createdAt));
     res.json({ users });
   } catch {
     res.status(500).json({ error: "Kullanıcılar yüklenemedi" });
+  }
+});
+
+/* PATCH /api/admin/users/:id/password — admin sets/changes a user's password */
+router.patch("/admin/users/:id/password", async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  if (isNaN(userId)) { res.status(400).json({ error: "Geçersiz kullanıcı ID" }); return; }
+  const { password } = req.body as { password?: string };
+  if (!password || password.length < 4) {
+    res.status(400).json({ error: "Şifre en az 4 karakter olmalıdır" }); return;
+  }
+  try {
+    const passwordHash = await bcrypt.hash(password, 10);
+    const [updated] = await db
+      .update(usersTable)
+      .set({ passwordHash, plainPassword: password })
+      .where(eq(usersTable.id, userId))
+      .returning({ id: usersTable.id, email: usersTable.email });
+    if (!updated) { res.status(404).json({ error: "Kullanıcı bulunamadı" }); return; }
+    res.json({ ok: true, id: updated.id, email: updated.email });
+  } catch {
+    res.status(500).json({ error: "Şifre güncellenirken hata oluştu" });
   }
 });
 

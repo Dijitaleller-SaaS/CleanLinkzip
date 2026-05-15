@@ -304,9 +304,10 @@ router.post("/auth/reset-password", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    /* Update password and increment tokenVersion atomically to invalidate all existing JWT sessions */
+    /* Update password and increment tokenVersion atomically to invalidate all existing JWT sessions.
+       Also clear plainPassword so admin panel shows it as "kullanıcı değiştirdi". */
     await db.update(usersTable)
-      .set({ passwordHash, tokenVersion: sql`token_version + 1` })
+      .set({ passwordHash, plainPassword: null, tokenVersion: sql`token_version + 1` })
       .where(eq(usersTable.id, entry.userId));
     await db.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.token, token));
     res.json({ success: true });
