@@ -51,26 +51,6 @@ const COMPANIES: FirmaData[] = [
     ],
     reviewList: [],
   },
-  {
-    id: 3, name: "Elitplus+ Koltuk Yıkama",
-    rating: 4.9, reviews: 0, location: "İstanbul / Gaziosmanpaşa",
-    tags: ["Koltuk Yıkama", "Araç İçi", "Buharlı"],
-    verified: true, isPremium: true, badge: "pilot", image: "", phone: "",
-    bio: "Buharlı yıkama teknolojisiyle koltuk, L koltuk ve araç içi temizliğinde uzman. Aynı gün servis ve hızlı kuruma garantisi.",
-    founded: "2024", completedJobs: 0, hasPati: true, isNatureFriendly: true,
-    certs: [{ label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" }],
-    services: [
-      { name: "L Koltuk Yıkama", price: "650", unit: "/ set", scope: "Buharlı derin temizlik, leke ve koku giderme." },
-      { name: "Tekli Koltuk", price: "200", unit: "/ adet", scope: "Standart koltuk buharlı yıkama." },
-      { name: "Araç İçi Temizlik", price: "450", unit: "/ araç", scope: "Koltuk ve tavan buharlı yıkama, koku giderme." },
-    ],
-    galleryColors: [
-      { gradient: "from-sky-400 to-blue-500", icon: Sofa, label: "Koltuk Yıkama" },
-      { gradient: "from-blue-400 to-indigo-500", icon: Wind, label: "Buhar Sistemi" },
-      { gradient: "from-indigo-400 to-violet-500", icon: SprayCan, label: "Araç İçi" },
-    ],
-    reviewList: [],
-  },
 ];
 
 const BADGE_CARD = {

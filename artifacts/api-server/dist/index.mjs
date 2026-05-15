@@ -84181,22 +84181,62 @@ async function ensurePlainPasswordColumn() {
     logger.error({ err }, "Failed to ensure plain_password column \u2014 continuing.");
   }
 }
-async function seedVendorOneMedia() {
+async function fixGunTemizlikRole() {
   try {
-    const [profile] = await db.select({ id: vendorProfilesTable.id, galleryUrls: vendorProfilesTable.galleryUrls, certUrls: vendorProfilesTable.certUrls }).from(vendorProfilesTable).where(eq(vendorProfilesTable.id, 1)).limit(1);
-    if (!profile) return;
+    const result = await db.update(usersTable).set({ role: "firma" }).where(sql`email = 'gunkoltukyikama@gmail.com' AND role != 'firma'`);
+    const count = result.rowCount ?? 0;
+    if (count > 0) logger.info("Fixed gunkoltukyikama role to firma.");
+    else logger.info("gunkoltukyikama role already correct, skipping.");
+  } catch (err) {
+    logger.error({ err }, "Failed to fix gunkoltukyikama role \u2014 continuing.");
+  }
+}
+async function fixElitplusWrongGallery() {
+  try {
+    const [elitUser] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "tariktingiroglu37@gmail.com")).limit(1);
+    if (!elitUser) return;
+    const [elitProfile] = await db.select({ id: vendorProfilesTable.id, galleryUrls: vendorProfilesTable.galleryUrls, certUrls: vendorProfilesTable.certUrls }).from(vendorProfilesTable).where(eq(vendorProfilesTable.userId, elitUser.id)).limit(1);
+    if (!elitProfile) return;
+    const wrongGallery = (elitProfile.galleryUrls ?? []).some((u) => u.includes("gun-temizlik"));
+    const wrongCert = (elitProfile.certUrls ?? []).some((u) => u.includes("gun-temizlik"));
+    if (!wrongGallery && !wrongCert) {
+      logger.info("Elit Plus+ gallery/cert correct, no fix needed.");
+      return;
+    }
+    await db.update(vendorProfilesTable).set({
+      galleryUrls: wrongGallery ? [] : elitProfile.galleryUrls,
+      certUrls: wrongCert ? [] : elitProfile.certUrls,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(vendorProfilesTable.id, elitProfile.id));
+    logger.info({ profileId: elitProfile.id }, "Cleared wrongly-seeded Elit Plus+ gallery/cert.");
+  } catch (err) {
+    logger.error({ err }, "Failed to fix Elit Plus+ gallery \u2014 continuing.");
+  }
+}
+async function seedGunTemizlikMedia() {
+  try {
+    const [gunUser] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "gunkoltukyikama@gmail.com")).limit(1);
+    if (!gunUser) {
+      logger.info("gunkoltukyikama user not found, skipping gallery seed.");
+      return;
+    }
+    const [profile] = await db.select({ id: vendorProfilesTable.id, galleryUrls: vendorProfilesTable.galleryUrls, certUrls: vendorProfilesTable.certUrls }).from(vendorProfilesTable).where(eq(vendorProfilesTable.userId, gunUser.id)).limit(1);
+    if (!profile) {
+      logger.info("G\xFCn Temizlik vendor profile not found, skipping gallery seed.");
+      return;
+    }
     const galleryEmpty = !profile.galleryUrls || profile.galleryUrls.length === 0;
     const certEmpty = !profile.certUrls || profile.certUrls.length === 0;
     if (!galleryEmpty && !certEmpty) {
-      logger.info("Vendor #1 media already seeded, skipping.");
+      logger.info("G\xFCn Temizlik media already seeded, skipping.");
       return;
     }
     const galleryUrls = galleryEmpty ? ["/firmalar/gun-temizlik/galeri-1.jpg"] : profile.galleryUrls;
     const certUrls = certEmpty ? [JSON.stringify({ name: "G\xDCN HALI YIKAMA & TEM\u0130ZL\u0130K .pdf", fileType: "pdf", url: "/firmalar/gun-temizlik/gun-hali-yikama-temizlik.pdf" })] : profile.certUrls;
-    await db.update(vendorProfilesTable).set({ galleryUrls, certUrls, updatedAt: /* @__PURE__ */ new Date() }).where(eq(vendorProfilesTable.id, 1));
-    logger.info({ galleryCount: galleryUrls.length, certCount: certUrls.length }, "Vendor #1 media seeded.");
+    await db.update(vendorProfilesTable).set({ galleryUrls, certUrls, updatedAt: /* @__PURE__ */ new Date() }).where(eq(vendorProfilesTable.id, profile.id));
+    logger.info({ profileId: profile.id, galleryCount: galleryUrls.length }, "G\xFCn Temizlik media seeded.");
   } catch (err) {
-    logger.error({ err }, "Failed to seed vendor #1 media \u2014 continuing startup.");
+    logger.error({ err }, "Failed to seed G\xFCn Temizlik media \u2014 continuing.");
   }
 }
 app_default.listen(port, async (err) => {
@@ -84206,7 +84246,9 @@ app_default.listen(port, async (err) => {
   }
   logger.info({ port }, "Server listening");
   await ensurePlainPasswordColumn();
-  await seedVendorOneMedia();
+  await fixGunTemizlikRole();
+  await fixElitplusWrongGallery();
+  await seedGunTemizlikMedia();
   startSubscriptionReminderJob();
 });
 /*! Bundled license information:
