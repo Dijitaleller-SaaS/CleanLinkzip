@@ -31,6 +31,29 @@ async function ensurePlainPasswordColumn(): Promise<void> {
   }
 }
 
+/* ── Startup: ensure gunkoltukyikama@gmail.com vendor profile is published ──
+   Gün Temizlik is our own firm; it must always appear on the homepage.       */
+async function fixGunTemizlikPublished(): Promise<void> {
+  try {
+    const [gunUser] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.email, "gunkoltukyikama@gmail.com"))
+      .limit(1);
+    if (!gunUser) { logger.info("gunkoltukyikama user not found, skipping publish fix."); return; }
+
+    const result = await db
+      .update(vendorProfilesTable)
+      .set({ isPublished: true, updatedAt: new Date() })
+      .where(sql`user_id = ${gunUser.id} AND is_published = false`);
+    const count = (result as unknown as { rowCount?: number }).rowCount ?? 0;
+    if (count > 0) logger.info("Gün Temizlik vendor profile set to published.");
+    else logger.info("Gün Temizlik vendor profile already published, skipping.");
+  } catch (err) {
+    logger.error({ err }, "Failed to fix Gün Temizlik published state — continuing.");
+  }
+}
+
 /* ── Startup: ensure gunkoltukyikama@gmail.com has role="firma" ─────────────
    In production the user was registered as "musteri". Fix it idempotently.  */
 async function fixGunTemizlikRole(): Promise<void> {
@@ -156,6 +179,7 @@ app.listen(port, async (err) => {
   await ensurePlainPasswordColumn();
   await ensureMamaBirimColumn();
   await fixGunTemizlikRole();
+  await fixGunTemizlikPublished();
   await fixElitplusWrongGallery();
   await seedGunTemizlikMedia();
   startSubscriptionReminderJob();

@@ -372,7 +372,8 @@ function PanelTab({ user, orders, pendingCount, totalRevenue, setTab, onReopenDe
       {(() => {
         const totalFidan = orders.reduce((s, o) => s + (o.fidanSayisi ?? 0), 0);
         const totalMama  = orders.reduce((s, o) => s + (o.mamaBirim ?? 0), 0);
-        if (totalFidan === 0 && totalMama === 0) return null;
+        const isOurFirma = user?.email === "gunkoltukyikama@gmail.com";
+        if (totalFidan === 0 && totalMama === 0 && !isOurFirma) return null;
         return (
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-5 flex items-center gap-4">

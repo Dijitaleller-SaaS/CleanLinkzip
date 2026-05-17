@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FirmaProfilModal, FirmaData } from "@/components/firma/FirmaProfilModal";
-import { useApp, ADMIN_EMAIL, defaultFirmaProfile, defaultPrices, defaultScopes, type VendorEntry } from "@/context/AppContext";
+import { useApp, ADMIN_EMAIL, defaultFirmaProfile, defaultPrices, defaultScopes, SERVICE_META, type VendorEntry, type ServiceKey } from "@/context/AppContext";
 import { apiAdminSetVisibilityByName } from "@/lib/api";
 import { useLocation } from "wouter";
 import { getFirmaSlugFromUrl, toSlug } from "@/lib/analytics";
@@ -70,12 +70,20 @@ function buildFirmaData(v: VendorEntry, idx: number): FirmaData {
     founded: new Date().getFullYear().toString(),
     completedJobs: 0,
     certs: [],
-    services: [
-      { name: "2+1 Ev Temizliği",  price: prices.ev2p1.toString(),        unit: "/ ziyaret", scope: scopes.ev2p1 || "" },
-      { name: "L Koltuk Yıkama",   price: prices.koltukL.toString(),      unit: "/ set",     scope: scopes.koltukL || "" },
-      { name: "Halı Yıkama",       price: prices.haliStandart.toString(),  unit: "/ m²",     scope: scopes.haliStandart || "" },
-      { name: "Ofis Temizliği",    price: prices.ofis.toString(),          unit: "/ gün",    scope: scopes.ofis || "" },
-    ],
+    services: (() => {
+      const active = (Object.entries(prices) as [ServiceKey, number][])
+        .filter(([, p]) => p > 0)
+        .slice(0, 3)
+        .map(([key, price]) => ({
+          name:  SERVICE_META[key].label,
+          price: price.toLocaleString("tr-TR"),
+          unit:  SERVICE_META[key].unit.replace("TL / ", "/ "),
+          scope: scopes[key] || "",
+        }));
+      return active.length > 0 ? active : [
+        { name: "Hizmet bilgisi yakında", price: "—", unit: "", scope: "" },
+      ];
+    })(),
     galleryColors: [
       { gradient: "from-teal-400 to-primary", icon: Home, label: "Ev Temizliği" },
       { gradient: "from-emerald-400 to-teal-500", icon: SprayCan, label: "Derin Temizlik" },
@@ -205,6 +213,18 @@ export function FeaturedCompanies() {
                   {cardBadge && !isAdmin && (
                     <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full border text-[10px] font-bold ${cardBadge.style}`}>
                       {cardBadge.label}
+                    </div>
+                  )}
+
+                  {/* Firma sahibi: kendi kartında Yönet butonu */}
+                  {!isAdmin && user?.type === "firma" && user.name === company.name && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <button
+                        onClick={e => { e.stopPropagation(); navigate("/firma-dashboard"); }}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/90 hover:bg-primary text-white text-[10px] font-bold transition-colors"
+                      >
+                        <Settings className="w-2.5 h-2.5" /> Yönet
+                      </button>
                     </div>
                   )}
 

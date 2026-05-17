@@ -84186,6 +84186,21 @@ async function ensurePlainPasswordColumn() {
     logger.error({ err }, "Failed to ensure plain_password column \u2014 continuing.");
   }
 }
+async function fixGunTemizlikPublished() {
+  try {
+    const [gunUser] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "gunkoltukyikama@gmail.com")).limit(1);
+    if (!gunUser) {
+      logger.info("gunkoltukyikama user not found, skipping publish fix.");
+      return;
+    }
+    const result = await db.update(vendorProfilesTable).set({ isPublished: true, updatedAt: /* @__PURE__ */ new Date() }).where(sql`user_id = ${gunUser.id} AND is_published = false`);
+    const count = result.rowCount ?? 0;
+    if (count > 0) logger.info("G\xFCn Temizlik vendor profile set to published.");
+    else logger.info("G\xFCn Temizlik vendor profile already published, skipping.");
+  } catch (err) {
+    logger.error({ err }, "Failed to fix G\xFCn Temizlik published state \u2014 continuing.");
+  }
+}
 async function fixGunTemizlikRole() {
   try {
     const result = await db.update(usersTable).set({ role: "firma" }).where(sql`email = 'gunkoltukyikama@gmail.com' AND role != 'firma'`);
@@ -84263,6 +84278,7 @@ app_default.listen(port, async (err) => {
   await ensurePlainPasswordColumn();
   await ensureMamaBirimColumn();
   await fixGunTemizlikRole();
+  await fixGunTemizlikPublished();
   await fixElitplusWrongGallery();
   await seedGunTemizlikMedia();
   startSubscriptionReminderJob();
