@@ -12,26 +12,6 @@ import { getFirmaSlugFromUrl, toSlug } from "@/lib/analytics";
 
 const COMPANIES: FirmaData[] = [
   {
-    id: 1, name: "Gün Temizlik Hizmetleri",
-    rating: 4.8, reviews: 0, location: "İstanbul / Şişli",
-    tags: ["Koltuk Yıkama", "Halı Yıkama", "Ev Temizliği"],
-    verified: true, isPremium: true, badge: "pilot", image: "", phone: "",
-    bio: "Koltuk, halı ve ev temizliğinde profesyonel çözümler. Buharlı yıkama teknolojisi ve çevre dostu ürünlerle temiz bir yaşam alanı.",
-    founded: "2023", completedJobs: 0, hasPati: false, isNatureFriendly: false,
-    certs: [{ label: "Sigortalı Hizmet", icon: ShieldCheck, color: "bg-blue-100 text-blue-600", bg: "bg-blue-50 border-blue-100" }],
-    services: [
-      { name: "L Koltuk Yıkama", price: "600", unit: "/ set", scope: "Buharlı derin temizlik, leke ve koku giderme." },
-      { name: "Halı Yıkama", price: "35", unit: "/ m²", scope: "Endüstriyel yıkama, organik deterjan, kuru teslim." },
-      { name: "2+1 Ev Temizliği", price: "1.400", unit: "/ ziyaret", scope: "Tüm odalar, mutfak, banyo dezenfeksiyonu dahil." },
-    ],
-    galleryColors: [
-      { gradient: "from-emerald-400 to-teal-500", icon: Sofa, label: "Koltuk Yıkama" },
-      { gradient: "from-teal-400 to-primary", icon: Layers, label: "Halı Yıkama" },
-      { gradient: "from-cyan-400 to-sky-500", icon: Home, label: "Ev Temizliği" },
-    ],
-    reviewList: [],
-  },
-  {
     id: 2, name: "Cleanlink Temizlik",
     rating: 4.9, reviews: 0, location: "İstanbul / Beşiktaş",
     tags: ["Ev Temizliği", "Ofis", "Derin Temizlik"],
@@ -159,36 +139,31 @@ export function FeaturedCompanies() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dynamicVendors, user?.name]);
 
-  /* ── rAF auto-scroll: 40 px/s, pauses on hover & after arrow click ── */
-  const trackRef = useRef<HTMLDivElement>(null);
-  const pausedRef = useRef(false);
+  /* ── İndeks tabanlı carousel: 1 firma göster, 5 s'de otomatik geç ── */
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hoveredRef = useRef(false);
+  const lengthRef = useRef(carouselFirms.length);
+  lengthRef.current = carouselFirms.length;
+
+  const startAutoAdvance = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (lengthRef.current <= 1) return;
+    timerRef.current = setInterval(() => {
+      if (!hoveredRef.current) setCurrentIdx(i => (i + 1) % lengthRef.current);
+    }, 5000);
+  };
 
   useEffect(() => {
-    if (carouselFirms.length === 0) return;
-    const el = trackRef.current;
-    if (!el) return;
-    let raf = 0;
-    let prev = 0;
-    const SPEED = 40; // px/s
-    const tick = (now: number) => {
-      if (!pausedRef.current && el) {
-        const dt = prev ? (now - prev) / 1000 : 0;
-        el.scrollLeft += SPEED * dt;
-        if (el.scrollLeft >= el.scrollWidth / 2) el.scrollLeft -= el.scrollWidth / 2;
-      }
-      prev = now;
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    setCurrentIdx(0);
+    startAutoAdvance();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carouselFirms.length]);
 
   const handleArrow = (dir: 1 | -1) => {
-    const el = trackRef.current;
-    if (!el) return;
-    pausedRef.current = true;
-    el.scrollBy({ left: dir * 320, behavior: "smooth" });
-    setTimeout(() => { pausedRef.current = false; }, 1000);
+    setCurrentIdx(i => (i + dir + carouselFirms.length) % carouselFirms.length);
+    startAutoAdvance();
   };
 
   const renderCard = (company: FirmaData, index: number, mobileGrid = false) => {
@@ -386,30 +361,57 @@ export function FeaturedCompanies() {
         </div>
       </div>
 
-      {/* Desktop: sonsuz carousel — mobilde gizli */}
-      <div className="relative hidden md:block">
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-14 z-10 bg-gradient-to-r from-white to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-14 z-10 bg-gradient-to-l from-white to-transparent" />
-        <button
-          onClick={() => handleArrow(-1)}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-foreground hover:bg-primary hover:text-white hover:border-primary transition-all"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => handleArrow(1)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-foreground hover:bg-primary hover:text-white hover:border-primary transition-all"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-        <div
-          ref={trackRef}
-          className="overflow-x-scroll scrollbar-none px-14 pb-4 flex flex-nowrap gap-5"
-          onMouseEnter={() => { pausedRef.current = true; }}
-          onMouseLeave={() => { pausedRef.current = false; }}
-        >
-          {[...carouselFirms, ...carouselFirms].map((company, index) => renderCard(company, index))}
+      {/* Desktop: 1 kart carousel, 5 s otomatik geç — mobilde gizli */}
+      <div
+        className="relative hidden md:block"
+        onMouseEnter={() => { hoveredRef.current = true; }}
+        onMouseLeave={() => { hoveredRef.current = false; }}
+      >
+        {carouselFirms.length > 1 && (
+          <>
+            <button
+              onClick={() => handleArrow(-1)}
+              className="absolute left-4 top-[45%] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-foreground hover:bg-primary hover:text-white hover:border-primary transition-all"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => handleArrow(1)}
+              className="absolute right-4 top-[45%] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-foreground hover:bg-primary hover:text-white hover:border-primary transition-all"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </>
+        )}
+        {/* Kart alanı — yalnızca aktif kart görünür, diğerleri saydam/üst üste */}
+        <div className="relative flex justify-center px-16 pb-4" style={{ minHeight: 420 }}>
+          {carouselFirms.map((company, index) => (
+            <div
+              key={`${company.id}-${index}`}
+              className={`w-[320px] transition-all duration-500 ${
+                index === currentIdx
+                  ? "opacity-100 scale-100 relative z-10"
+                  : "opacity-0 scale-95 absolute inset-x-0 mx-auto pointer-events-none z-0"
+              }`}
+            >
+              {renderCard(company, index)}
+            </div>
+          ))}
         </div>
+        {/* Nokta göstergeler */}
+        {carouselFirms.length > 1 && (
+          <div className="flex justify-center gap-2 pb-4">
+            {carouselFirms.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { setCurrentIdx(i); startAutoAdvance(); }}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  i === currentIdx ? "w-6 bg-primary" : "w-2 bg-primary/25"
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Mobil: 2 sütun grid, ilk 2 kart görünür + "Daha Fazla Gör" — masaüstünde gizli */}
