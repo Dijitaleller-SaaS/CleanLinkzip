@@ -2171,15 +2171,40 @@ function ReklamTab({ onOpenPayment }: { onOpenPayment: (pkg: PackageType) => voi
             ))}
           </div>
           <div className="h-px bg-border mb-5" />
+
+          {/* Pilot uyarısı */}
+          <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5">
+            <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-red-700 leading-relaxed">
+              <span className="font-bold">Pilot çalışma koşulları:</span> Bu paket{" "}
+              <span className="font-bold">3 aylık</span> pilot çalışma kapsamındadır ve her ay için{" "}
+              <span className="font-bold">5.000 TL + KDV</span> ödeme yapılır.{" "}
+              <span className="font-semibold">7 günlük iptal garantisi pilot çalışma için geçerli değildir.</span>
+            </p>
+          </div>
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-foreground">Aylık 5.000 TL + KDV</p>
-              <p className="text-xs text-muted-foreground mt-0.5">İptal garantisi · 7 günlük ücretsiz deneme</p>
+              <p className="text-sm font-semibold text-foreground">3 Aylık Pilot · Aylık 5.000 TL + KDV</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Toplam 15.000 TL + KDV · Pilot süre boyunca geçerli</p>
             </div>
             {firmaProfile.isSponsor ? (
-              <div className="flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-bold text-sm">
-                <Crown className="w-4 h-4 text-amber-500" />
-                Elite Aktif — Ana Sayfada Görünüyorsunuz
+              <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
+                <div className="flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-bold text-sm w-full sm:w-auto justify-center">
+                  <Crown className="w-4 h-4 text-amber-500" />
+                  Elite Paket Aktif — Ana Sayfadasınız
+                </div>
+                {(() => {
+                  const start = firmaProfile.yayinaGirisTarihi;
+                  if (!start) return null;
+                  const PILOT_MS = 3 * 30 * 24 * 60 * 60 * 1000;
+                  const endDate = new Date(start + PILOT_MS).toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
+                  return (
+                    <p className="text-[11px] text-amber-700 font-medium">
+                      Pilot çalışma bitiş tarihi: <span className="font-bold">{endDate}</span>
+                    </p>
+                  );
+                })()}
               </div>
             ) : firmaProfile.isSubscribed ? (
               <Button onClick={() => onOpenPayment("elite")}
