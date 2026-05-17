@@ -3,7 +3,7 @@ import { useSEO } from "@/hooks/useSEO";
 import { motion } from "framer-motion";
 import {
   Search, MapPin, Star, ArrowLeft, Globe, SprayCan, Home, Sofa,
-  Layers, Wind, EyeOff, CheckCircle2, CalendarClock, Loader2, ShieldCheck, Lock,
+  Layers, Wind, EyeOff, CheckCircle2, CalendarClock, Loader2, ShieldCheck, Lock, Settings,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -303,6 +303,11 @@ export default function AllVendors() {
                       const havale = effective.subscriptionPending && !effective.isSubscribed;
                       return (
                         <div className="absolute top-2 left-2 flex flex-col gap-1">
+                          <button
+                            onClick={e => { e.stopPropagation(); navigate(`/admin-dashboard?firma=${encodeURIComponent(firma.name)}`); }}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/90 hover:bg-primary text-white text-[10px] font-bold transition-colors">
+                            <Settings className="w-2.5 h-2.5" /> Yönet
+                          </button>
                           <button onClick={e => handleAdminRemove(e, firma.name)}
                             className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/90 hover:bg-red-600 text-white text-[10px] font-bold transition-colors">
                             <EyeOff className="w-2.5 h-2.5" /> Yayından Kaldır

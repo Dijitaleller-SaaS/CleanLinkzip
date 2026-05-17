@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Star, ShieldCheck, MapPin, ChevronLeft, ChevronRight,
-  Home, SprayCan, EyeOff, Layers, Sofa, Wind, Lock
+  Home, SprayCan, EyeOff, Layers, Sofa, Wind, Lock, Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FirmaProfilModal, FirmaData } from "@/components/firma/FirmaProfilModal";
@@ -212,15 +212,22 @@ export function FeaturedCompanies() {
                     </div>
                   )}
 
-                  {/* Admin: remove from featured */}
+                  {/* Admin: yönet + kaldır */}
                   {isAdmin && (
-                    <button
-                      onClick={e => handleAdminRemove(e, company.name)}
-                      className="absolute top-3 left-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/90 hover:bg-red-600 text-white text-[10px] font-bold transition-colors z-10"
-                    >
-                      <EyeOff className="w-2.5 h-2.5" />
-                      Yayından Kaldır
-                    </button>
+                    <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                      <button
+                        onClick={e => { e.stopPropagation(); navigate(`/admin-dashboard?firma=${encodeURIComponent(company.name)}`); }}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/90 hover:bg-primary text-white text-[10px] font-bold transition-colors"
+                      >
+                        <Settings className="w-2.5 h-2.5" /> Yönet
+                      </button>
+                      <button
+                        onClick={e => handleAdminRemove(e, company.name)}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/90 hover:bg-red-600 text-white text-[10px] font-bold transition-colors"
+                      >
+                        <EyeOff className="w-2.5 h-2.5" /> Kaldır
+                      </button>
+                    </div>
                   )}
 
                   <div className="absolute bottom-2 left-3 flex gap-1">

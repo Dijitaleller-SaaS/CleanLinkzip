@@ -104,7 +104,7 @@ function ErrorBox({ msg, onRetry }: { msg: string; onRetry: () => void }) {
 /* ═══════════════════════════════════════════
    Firma Yönetimi Tab
 ═══════════════════════════════════════════ */
-type FirmaFilter = "tümü" | "crm" | "yeni" | "sponsor";
+type FirmaFilter = "tümü" | "crm" | "yeni" | "sponsor" | "havale";
 
 function FirmaTab() {
   const [vendors, setVendors] = useState<AdminVendor[]>([]);
@@ -129,12 +129,24 @@ function FirmaTab() {
 
   const [search, setSearch] = useState("");
 
+  /* Okunur URL param — firma adıyla admin-dashboard?firma=X linkinden gelince arama kutusunu doldur */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const firmaParam = params.get("firma");
+    if (firmaParam) {
+      setSearch(decodeURIComponent(firmaParam));
+      setFilter("tümü");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const filtered = vendors.filter(v => {
     const exp = isExpired(v);
     const matchFilter =
       filter === "crm"     ? (v.isSubscribed && !v.isSponsor) && !exp :
       filter === "sponsor" ? v.isSponsor && !exp :
       filter === "yeni"    ? (!v.isSubscribed && !v.isSponsor) :
+      filter === "havale"  ? !!v.havaleRefCode :
       true;
     const q = search.toLowerCase().trim();
     const matchSearch = !q || v.name.toLowerCase().includes(q) || v.email.toLowerCase().includes(q);
@@ -198,11 +210,13 @@ function FirmaTab() {
     finally { setBusy(null); }
   };
 
+  const pendingHavaleCount = vendors.filter(v => !!v.havaleRefCode).length;
   const filterTabs: { key: FirmaFilter; label: string }[] = [
-    { key: "tümü",   label: `Tümü (${vendors.length})` },
-    { key: "yeni",   label: `Pasif / Onay Bekliyor (${vendors.filter(v => !v.isSubscribed && !v.isSponsor).length})` },
-    { key: "crm",    label: `CRM Üye (${vendors.filter(v => v.isSubscribed && !v.isSponsor && !isExpired(v)).length})` },
+    { key: "tümü",    label: `Tümü (${vendors.length})` },
+    { key: "yeni",    label: `Pasif / Onay Bekliyor (${vendors.filter(v => !v.isSubscribed && !v.isSponsor).length})` },
+    { key: "crm",     label: `CRM Üye (${vendors.filter(v => v.isSubscribed && !v.isSponsor && !isExpired(v)).length})` },
     { key: "sponsor", label: `Sponsor (${vendors.filter(v => v.isSponsor && !isExpired(v)).length})` },
+    { key: "havale",  label: `Havale Onay Bekliyor${pendingHavaleCount > 0 ? ` (${pendingHavaleCount})` : ""}` },
   ];
 
   return (
@@ -1826,6 +1840,13 @@ export default function AdminDashboard() {
       navigate("/");
     }
   }, [user, navigate, isAdmin]);
+
+  /* ?firma= URL param → firmalar sekmesine otomatik geç */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("firma")) setTab("firmalar");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* Notification badge */
   useEffect(() => {
