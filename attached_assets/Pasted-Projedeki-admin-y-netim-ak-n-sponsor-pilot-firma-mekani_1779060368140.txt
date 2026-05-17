@@ -1,0 +1,43 @@
+Projedeki admin yönetim akışını, sponsor/pilot firma mekanizmasını ve bağış/istatistik modüllerini aşağıda belirtilen kurallara göre güncelleyin. Tasarımda mevcut profil kartlarının boyutları kesinlikle korunmalı, düzen bozulmamalıdır.
+
+1. Elite Üye & Havale Onay Akışı (CRM Entegrasyonu)
+Havale Bekleyenler Ekranı: Yeni bir firma "Elite Üyelik" için havale yöntemiyle ödeme yaptığında, bu işlem Admin Panel'deki Sponsor Bölümü / Onay Bekleyenler sekmesine düşmelidir.
+
+Admin Görünümü: Admin, onay bekleyen bu firmanın tüm detaylarını (Firma adı, bilgileri, işlem tutarı) net bir şekilde görebilmelidir.
+
+Onay Mekanizması & Vitrin (Pilot Firma):
+
+Admin bu işleme "Onay" verdiğinde, firmanın durumu "Aktif Elite / Pilot Firma" olarak güncellenmelidir.
+
+Onaylanan bu firma, Ana Sayfadaki Ana Vitrin (Hero/Featured) bölümüne otomatik olarak düşmeli ve sergilenmelidir.
+
+Bu akış, mevcut CRM'deki onay süreçleriyle birebir aynı mimaride çalışmalıdır.
+
+2. Sürdürülebilirlik & Bağış Sistemi (Fidan + Mama)
+Sepet ve satın alma işlemlerine bağlı olarak aşağıdaki bağış mantığını backend ve veritabanı modellerine entegre edin:
+
+Fidan Bağışı Kuralı: 5000 TL ve üzeri her alışverişte/işlemde sistem otomatik olarak 1 adet fidan dikimi tanımlamalıdır.
+
+Mama Bağışı Seçeneği: Kullanıcılar sepet veya ödeme adımında ekstra mama bağışı ekleyebilmelidir.
+
+Birim: 100gr Mama
+
+Fiyatlandırma: +50 adet mama bağışı = +75 TL olarak hesaplanmalı ve faturaya/sepete yansıtılmalıdır.
+
+3. Firma Admin Dashboard & İstatistik Güncellemesi
+Firma sahiplerinin ve genel adminin göreceği istatistik paneline sürdürülebilirlik metrikleri eklenmelidir:
+
+İstatistik Bölümü (Dashboard): Hangi firmanın toplamda kaç adet ağaç (fidan) dikilmesine vesile olduğu ve kaç adet mama bağışı topladığı anlık olarak yansıtılmalıdır.
+
+Veri Gösterimi: Panelde net bir şekilde şu ibareler ve sayılar yer almalıdır:
+
+Vesile Olunan Fidan Sayısı: X
+
+Bağışlanan Mama Miktarı (100gr biriminden): Y
+
+4. UI/UX ve Tasarım Kuralları
+Profil Kartları: Yapılacak mama ve fidan eklemeleri veya veri güncellemeleri esnasında profil kartlarının boyutları ve minimalist Bento Grid / Soft UI yapısı kesinlikle korunmalı, taşma veya daralma olmamalıdır.
+
+Hizmetler Bölümü: Hizmet listeleme ve yönetim alanındaki mevcut esnek yapı korunarak, yukarıdaki yeni statüler (Elite/Pilot) bu bölümlerdeki filtrelemelerle uyumlu çalışmalıdır.
+
+Not: Yukarıdaki komut metni, Replit üzerindeki projenin hem backend (veri tabanı statüleri, fiyatlandırma mantığı) hem de frontend (admin paneli, istatistik dashboard'u, ana sayfa vitrini) süreçlerini tek seferde düzenlemesini sağlayacaktır.

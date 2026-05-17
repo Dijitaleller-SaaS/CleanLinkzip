@@ -244,12 +244,13 @@ export function BookingModal({ firma, preselectedService, preselectedQty, onClos
   }, [checkedNames, sqmMap, firma.services]);
 
   const kdv         = Math.round(base * 0.18);
-  const ecoFee      = ecoOption ? 50 : 0;
+  const ecoFee      = ecoOption ? 75 : 0;
   const subtotal    = base + kdv + ecoFee;
   const discount    = couponData?.discountAmount ?? 0;
   const total       = Math.max(0, subtotal - discount);
-  const fidanSayisi = total >= 2500 ? Math.floor(total / 2500) : 0;
-  const mamaBagisi  = ecoOption; // Pati seçeneği → 1 × 250gr mama
+  const fidanSayisi = total >= 5000 ? Math.floor(total / 5000) : 0;
+  const mamaBirim   = ecoOption ? 50 : 0; // Pati seçeneği → 50 birim × 100gr mama (5000gr)
+  const mamaBagisi  = ecoOption;
 
   /* ── Validation ── */
   const allM2Filled = [...checkedNames].every(name => {
@@ -327,6 +328,7 @@ export function BookingModal({ firma, preselectedService, preselectedQty, onClos
       telefon: telefon.trim() || undefined,
       ecoOption,
       fidanSayisi: fidanSayisi > 0 ? fidanSayisi : undefined,
+      mamaBirim: mamaBirim > 0 ? mamaBirim : undefined,
       couponCode: couponData?.code,
     });
     if (isAdSession()) trackAdOrder(orderId);
@@ -719,10 +721,10 @@ export function BookingModal({ firma, preselectedService, preselectedQty, onClos
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-foreground flex items-center gap-1">
-                          🐾 Pati Seçeneği <span className="text-amber-600 font-bold">+50 TL</span>
+                          🐾 Pati Seçeneği <span className="text-amber-600 font-bold">+75 TL</span>
                         </p>
                         <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                          Adınıza 250gr mama barınak hayvanlarına bağışlansın.
+                          Adınıza 50 birim × 100gr mama (5 kg) barınak hayvanlarına bağışlansın.
                         </p>
                       </div>
                     </button>
@@ -749,8 +751,8 @@ export function BookingModal({ firma, preselectedService, preselectedQty, onClos
                         </div>
                         {ecoOption && (
                           <div className="flex justify-between text-amber-600">
-                            <span>Pati Seçeneği</span>
-                            <span className="font-medium">+50 TL</span>
+                            <span>Pati Seçeneği (50 birim × 100gr mama)</span>
+                            <span className="font-medium">+75 TL</span>
                           </div>
                         )}
                         {couponData && (
@@ -909,7 +911,7 @@ export function BookingModal({ firma, preselectedService, preselectedQty, onClos
                       <div className="text-left">
                         <p className="text-sm font-bold text-amber-800">Mama bağışınız iletildi!</p>
                         <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                          Adınıza 250gr mama barınak hayvanlarına bağışlanacak.
+                          Adınıza 50 birim × 100gr mama (5 kg) barınak hayvanlarına bağışlanacak.
                         </p>
                       </div>
                     </div>

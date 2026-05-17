@@ -73,6 +73,7 @@ export const ordersTable = pgTable("orders", {
   visitTime:             varchar("visit_time", { length: 50 }).default("").notNull(),
   ecoOption:             boolean("eco_option").default(false).notNull(),
   treesPlanted:          integer("trees_planted").default(0).notNull(),
+  mamaBirim:             integer("mama_birim").default(0).notNull(),
   proposedAt:            timestamp("proposed_at"),
   musteriYeniSaatIstedi: boolean("musteri_yeni_saat_istedi").default(false).notNull(),
   unlockedAt:            timestamp("unlocked_at"),

@@ -278,7 +278,11 @@ router.post("/orders", requireAuth, async (req: AuthRequest, res) => {
           requestedTimeSlot: body.requestedTimeSlot ?? "",
           visitTime: "",
           ecoOption: body.ecoOption ?? false,
-          treesPlanted: 0,
+          treesPlanted: (() => {
+            const t = Math.max(0, body.total - (body.discountAmount ?? 0));
+            return t >= 5000 ? Math.floor(t / 5000) : 0;
+          })(),
+          mamaBirim: body.ecoOption ? 50 : 0,
           musteriYeniSaatIstedi: false,
           couponCode,
           discountAmount,

@@ -133,6 +133,19 @@ async function seedGunTemizlikMedia(): Promise<void> {
   }
 }
 
+/* ── Startup: ensure mama_birim column exists (migration) ───────────────────
+   Added after initial schema creation — safe to run multiple times.          */
+async function ensureMamaBirimColumn(): Promise<void> {
+  try {
+    await db.execute(sql`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS mama_birim integer NOT NULL DEFAULT 0
+    `);
+    logger.info("mama_birim column ensured.");
+  } catch (err) {
+    logger.error({ err }, "Failed to ensure mama_birim column — continuing.");
+  }
+}
+
 app.listen(port, async (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
@@ -141,6 +154,7 @@ app.listen(port, async (err) => {
 
   logger.info({ port }, "Server listening");
   await ensurePlainPasswordColumn();
+  await ensureMamaBirimColumn();
   await fixGunTemizlikRole();
   await fixElitplusWrongGallery();
   await seedGunTemizlikMedia();

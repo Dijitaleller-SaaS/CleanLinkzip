@@ -347,7 +347,7 @@ function PanelTab({ user, orders, pendingCount, totalRevenue, setTab, onReopenDe
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
         {[
           { label: "Toplam Sipariş", value: orders.length, icon: ShoppingBag, color: "from-primary to-teal-600" },
           { label: "Bekleyen Sipariş", value: pendingCount, icon: Clock, color: "from-amber-400 to-orange-500" },
@@ -367,6 +367,33 @@ function PanelTab({ user, orders, pendingCount, totalRevenue, setTab, onReopenDe
           );
         })}
       </div>
+
+      {/* ── Sürdürülebilirlik İstatistikleri ── */}
+      {(() => {
+        const totalFidan = orders.reduce((s, o) => s + (o.fidanSayisi ?? 0), 0);
+        const totalMama  = orders.reduce((s, o) => s + (o.mamaBirim ?? 0), 0);
+        if (totalFidan === 0 && totalMama === 0) return null;
+        return (
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-5 flex items-center gap-4">
+              <span className="text-4xl flex-shrink-0">🌳</span>
+              <div>
+                <p className="text-2xl font-bold text-green-800">{totalFidan}</p>
+                <p className="text-xs font-semibold text-green-700">Vesile Olunan Fidan</p>
+                <p className="text-[11px] text-green-600 mt-0.5">5.000 TL+ her siparişten 1 fidan</p>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 flex items-center gap-4">
+              <span className="text-4xl flex-shrink-0">🐾</span>
+              <div>
+                <p className="text-2xl font-bold text-amber-800">{totalMama} <span className="text-base font-semibold">birim</span></p>
+                <p className="text-xs font-semibold text-amber-700">Bağışlanan Mama</p>
+                <p className="text-[11px] text-amber-600 mt-0.5">{totalMama * 100}gr · Pati Seçeneği</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Onay bekleyen sipariş uyarısı */}
       {onayBekleyenCount > 0 && (

@@ -81050,6 +81050,7 @@ var ordersTable = pgTable("orders", {
   visitTime: varchar("visit_time", { length: 50 }).default("").notNull(),
   ecoOption: boolean("eco_option").default(false).notNull(),
   treesPlanted: integer("trees_planted").default(0).notNull(),
+  mamaBirim: integer("mama_birim").default(0).notNull(),
   proposedAt: timestamp("proposed_at"),
   musteriYeniSaatIstedi: boolean("musteri_yeni_saat_istedi").default(false).notNull(),
   unlockedAt: timestamp("unlocked_at"),
@@ -82353,7 +82354,11 @@ router6.post("/orders", requireAuth, async (req, res) => {
         requestedTimeSlot: body.requestedTimeSlot ?? "",
         visitTime: "",
         ecoOption: body.ecoOption ?? false,
-        treesPlanted: 0,
+        treesPlanted: (() => {
+          const t2 = Math.max(0, body.total - (body.discountAmount ?? 0));
+          return t2 >= 5e3 ? Math.floor(t2 / 5e3) : 0;
+        })(),
+        mamaBirim: body.ecoOption ? 50 : 0,
         musteriYeniSaatIstedi: false,
         couponCode,
         discountAmount
@@ -84239,6 +84244,16 @@ async function seedGunTemizlikMedia() {
     logger.error({ err }, "Failed to seed G\xFCn Temizlik media \u2014 continuing.");
   }
 }
+async function ensureMamaBirimColumn() {
+  try {
+    await db.execute(sql`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS mama_birim integer NOT NULL DEFAULT 0
+    `);
+    logger.info("mama_birim column ensured.");
+  } catch (err) {
+    logger.error({ err }, "Failed to ensure mama_birim column \u2014 continuing.");
+  }
+}
 app_default.listen(port, async (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
@@ -84246,6 +84261,7 @@ app_default.listen(port, async (err) => {
   }
   logger.info({ port }, "Server listening");
   await ensurePlainPasswordColumn();
+  await ensureMamaBirimColumn();
   await fixGunTemizlikRole();
   await fixElitplusWrongGallery();
   await seedGunTemizlikMedia();

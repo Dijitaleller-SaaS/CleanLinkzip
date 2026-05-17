@@ -172,6 +172,7 @@ export interface Order {
   adres?: string;
   ecoOption?: boolean;
   fidanSayisi?: number;
+  mamaBirim?: number;
   musteriYeniSaatIstedi?: boolean;
   isContactUnlocked?: boolean;
 }
@@ -252,6 +253,7 @@ function orderApiToOrder(o: OrderApi): Order {
     adres: o.adres || undefined,
     ecoOption: o.ecoOption || undefined,
     fidanSayisi: o.treesPlanted || undefined,
+    mamaBirim: (o as unknown as { mamaBirim?: number }).mamaBirim || undefined,
     proposedAt: o.proposedAt ? new Date(o.proposedAt).getTime() : undefined,
     musteriYeniSaatIstedi: o.musteriYeniSaatIstedi || undefined,
     isContactUnlocked: o.isContactUnlocked,
