@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   Star, ShieldCheck, MapPin, ChevronLeft, ChevronRight,
   Home, SprayCan, EyeOff, Layers, Sofa, Wind, Lock, Settings
@@ -139,32 +139,28 @@ export function FeaturedCompanies() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dynamicVendors, user?.name]);
 
-  /* ── İndeks tabanlı carousel: 1 firma göster, 5 s'de otomatik geç ── */
+  /* ── Multi-kart carousel: masaüstünde 3 kart aynı anda, oklarla kaydır ── */
+  const VISIBLE = 3;          // masaüstünde aynı anda görünen kart sayısı
+  const CARD_STEP = 340;      // 320px kart + 20px gap
+  const LOOP_THRESHOLD = 24;  // 24 pilot firmada döngü devreye girer
+
+  const canLoop = carouselFirms.length >= LOOP_THRESHOLD;
+  const maxScrollIdx = Math.max(0, carouselFirms.length - VISIBLE);
+
   const [currentIdx, setCurrentIdx] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const hoveredRef = useRef(false);
-  const lengthRef = useRef(carouselFirms.length);
-  lengthRef.current = carouselFirms.length;
+  const skipTransitionRef = useRef(false);
 
-  const startAutoAdvance = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (lengthRef.current <= 1) return;
-    timerRef.current = setInterval(() => {
-      if (!hoveredRef.current) setCurrentIdx(i => (i + 1) % lengthRef.current);
-    }, 5000);
-  };
+  useEffect(() => { setCurrentIdx(0); }, [carouselFirms.length]);
 
-  useEffect(() => {
-    setCurrentIdx(0);
-    startAutoAdvance();
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  const handleArrow = useCallback((dir: 1 | -1) => {
+    const N = carouselFirms.length;
+    if (N <= VISIBLE) return;
+    setCurrentIdx(prev => {
+      if (canLoop) return ((prev + dir) % N + N) % N;
+      return Math.max(0, Math.min(prev + dir, maxScrollIdx));
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [carouselFirms.length]);
-
-  const handleArrow = (dir: 1 | -1) => {
-    setCurrentIdx(i => (i + dir + carouselFirms.length) % carouselFirms.length);
-    startAutoAdvance();
-  };
+  }, [carouselFirms.length, canLoop, maxScrollIdx]);
 
   const renderCard = (company: FirmaData, index: number, mobileGrid = false) => {
     const liveProfile = getLiveProfile(company.name);
@@ -368,50 +364,48 @@ export function FeaturedCompanies() {
         </div>
       </div>
 
-      {/* Desktop: 1 kart carousel, 5 s otomatik geç — mobilde gizli */}
-      <div
-        className="relative hidden md:block"
-        onMouseEnter={() => { hoveredRef.current = true; }}
-        onMouseLeave={() => { hoveredRef.current = false; }}
-      >
-        {carouselFirms.length > 1 && (
-          <>
-            <button
-              onClick={() => handleArrow(-1)}
-              className="absolute left-4 top-[45%] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-foreground hover:bg-primary hover:text-white hover:border-primary transition-all"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => handleArrow(1)}
-              className="absolute right-4 top-[45%] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-foreground hover:bg-primary hover:text-white hover:border-primary transition-all"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </>
+      {/* Desktop: 3 kart yan yana, oklarla kaydır — mobilde gizli */}
+      <div className="relative hidden md:block">
+        {/* Sol ok — N > 3 ve başta değilsek (veya döngü modunda) */}
+        {carouselFirms.length > VISIBLE && (canLoop || currentIdx > 0) && (
+          <button
+            onClick={() => handleArrow(-1)}
+            className="absolute left-4 top-[45%] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-foreground hover:bg-primary hover:text-white hover:border-primary transition-all"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
         )}
-        {/* Kart alanı — yalnızca aktif kart görünür, diğerleri saydam/üst üste */}
-        <div className="relative flex justify-center px-16 pb-4" style={{ minHeight: 420 }}>
-          {carouselFirms.map((company, index) => (
-            <div
-              key={`${company.id}-${index}`}
-              className={`w-[320px] transition-all duration-500 ${
-                index === currentIdx
-                  ? "opacity-100 scale-100 relative z-10"
-                  : "opacity-0 scale-95 absolute inset-x-0 mx-auto pointer-events-none z-0"
-              }`}
-            >
-              {renderCard(company, index)}
-            </div>
-          ))}
+        {/* Sağ ok — N > 3 ve sonda değilsek (veya döngü modunda) */}
+        {carouselFirms.length > VISIBLE && (canLoop || currentIdx < maxScrollIdx) && (
+          <button
+            onClick={() => handleArrow(1)}
+            className="absolute right-4 top-[45%] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-foreground hover:bg-primary hover:text-white hover:border-primary transition-all"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Kart bandı — overflow ile kırpılır, 3 kart görünür */}
+        <div className="overflow-hidden px-16 pb-4">
+          <div
+            className={`flex gap-5 ${skipTransitionRef.current ? "" : "transition-transform duration-500"}`}
+            style={{ transform: `translateX(calc(-${currentIdx} * ${CARD_STEP}px))` }}
+          >
+            {carouselFirms.map((company, index) => (
+              <div key={`${company.id}-${index}`} className="w-[320px] flex-shrink-0">
+                {renderCard(company, index)}
+              </div>
+            ))}
+          </div>
         </div>
-        {/* Nokta göstergeler */}
-        {carouselFirms.length > 1 && (
+
+        {/* Nokta göstergeler — yalnızca 4–7 firma arasında, 24+'da sadece oklar yeterli */}
+        {carouselFirms.length > VISIBLE && carouselFirms.length < LOOP_THRESHOLD && (
           <div className="flex justify-center gap-2 pb-4">
-            {carouselFirms.map((_, i) => (
+            {Array.from({ length: maxScrollIdx + 1 }).map((_, i) => (
               <button
                 key={i}
-                onClick={() => { setCurrentIdx(i); startAutoAdvance(); }}
+                onClick={() => setCurrentIdx(i)}
                 className={`h-2 rounded-full transition-all duration-300 ${
                   i === currentIdx ? "w-6 bg-primary" : "w-2 bg-primary/25"
                 }`}
