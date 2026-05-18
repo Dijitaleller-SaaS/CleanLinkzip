@@ -101,7 +101,7 @@ export function FeaturedCompanies() {
   /* Context gives us live firmaProfile so "Reklamı Başlat" instantly reflects here */
   const { user, firmaProfile, vendors, refreshVendors, setShowAuthModal, setAuthMode } = useApp();
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.email === ADMIN_EMAIL || user?.email === "serkcel@gmail.com" || (user as { role?: string } | null)?.role === "admin";
 
   const handleAdminRemove = (e: React.MouseEvent, firmaName: string) => {
     e.stopPropagation();
@@ -232,7 +232,7 @@ export function FeaturedCompanies() {
                   {isAdmin && (
                     <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
                       <button
-                        onClick={e => { e.stopPropagation(); navigate(`/admin-dashboard?firma=${encodeURIComponent(company.name)}`); }}
+                        onClick={e => { e.stopPropagation(); navigate(`/firma-dashboard?adminFirma=${encodeURIComponent(company.name)}`); }}
                         className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/90 hover:bg-primary text-white text-[10px] font-bold transition-colors"
                       >
                         <Settings className="w-2.5 h-2.5" /> Yönet

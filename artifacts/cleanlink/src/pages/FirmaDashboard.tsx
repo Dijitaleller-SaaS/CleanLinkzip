@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp, Order, SERVICE_KEYS, SERVICE_META, SERVICE_GROUPS, ServiceKey, FirmaPrices, ServiceScopes, getMusteriEmail, ADMIN_EMAIL, approveFirmaHavale, extendFirmaSubscription, isSubExpired, SUB_DURATION_MS } from "@/context/AppContext";
-import { apiSubmitHavale, apiGetMyVendorProfile, apiUpdateVendorProfile, apiNotifyDekont, apiPaytrStatus, apiPaytrInit } from "@/lib/api";
+import { apiSubmitHavale, apiGetMyVendorProfile, apiUpdateVendorProfile, apiNotifyDekont, apiPaytrStatus, apiPaytrInit, apiAdminGetOrders, type AdminOrder } from "@/lib/api";
 import { loadAdConversions, filterByPeriod, trackAdCall, exportAdConversionsJson, type AdConversionsData } from "@/lib/adTracking";
 
 type Tab = "panel" | "siparisler" | "yorumlar" | "fiyatlar" | "profil" | "reklam";
@@ -2459,9 +2459,68 @@ function DashboardSidebar({ mobile = false, userName, firmaProfile, urgentCount,
 }
 
 export default function FirmaDashboard({ onGoHome }: { onGoHome?: () => void }) {
-  const { user, logout, orders, firmaProfile, updateFirmaProfile, refreshFirmaProfile } = useApp();
+  const { user, logout, orders, firmaProfile, updateFirmaProfile, refreshFirmaProfile, vendors } = useApp();
   const [tab, setTab] = useState<Tab>("panel");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  /* ── Admin impersonation: ?adminFirma=NAME ───────────────────────────────
+     When an admin navigates here with this param, the panel shows that firm's
+     data read-only. Admin can still view panel + orders; write tabs stay for
+     context but operate on the admin's own session.                          */
+  const isAdmin = user?.email === ADMIN_EMAIL
+    || user?.email === "serkcel@gmail.com"
+    || (user as { role?: string } | null)?.role === "admin";
+
+  const adminFirmaName: string = (() => {
+    if (!isAdmin) return "";
+    try { return new URLSearchParams(window.location.search).get("adminFirma") ?? ""; }
+    catch { return ""; }
+  })();
+
+  const [adminViewOrders, setAdminViewOrders] = useState<Order[]>([]);
+  const [adminViewLoaded, setAdminViewLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!adminFirmaName) { setAdminViewLoaded(true); return; }
+    setAdminViewLoaded(false);
+    apiAdminGetOrders()
+      .then((raw: AdminOrder[]) => {
+        const name = adminFirmaName.trim().toLowerCase();
+        const mapped: Order[] = raw
+          .filter(o => (o.vendorName ?? "").trim().toLowerCase() === name)
+          .map(o => ({
+            id: o.id,
+            musteri: o.customerName,
+            telefon: o.customerPhone,
+            firmaName: o.vendorName,
+            hizmet: o.service,
+            toplam: o.total,
+            durum: o.status as import("@/context/AppContext").OrderDurum,
+            tarih: o.createdAt,
+            ilce: o.ilce,
+            mahalle: o.mahalle,
+            adres: o.adres,
+            istenenTarih: o.requestedDate,
+            istenenSaatDilimi: o.requestedTimeSlot,
+            ecoOption: o.ecoOption,
+            isContactUnlocked: !!o.unlockedAt,
+          }));
+        setAdminViewOrders(mapped);
+      })
+      .catch(() => void 0)
+      .finally(() => setAdminViewLoaded(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminFirmaName]);
+
+  /* Vendor entry for impersonated firm */
+  const adminViewVendor = adminFirmaName
+    ? vendors.find(v => v.name.trim().toLowerCase() === adminFirmaName.trim().toLowerCase()) ?? null
+    : null;
+
+  /* Fake "user" object shown in PanelTab header when in admin-view mode */
+  const viewUser = adminFirmaName
+    ? { name: adminFirmaName, email: adminViewVendor ? undefined : undefined, type: "firma" as const }
+    : user;
 
   /* ── Lifted PaymentModal state ── */
   const [paymentPkg, setPaymentPkg] = useState<PackageType | null>(null);
@@ -2516,10 +2575,11 @@ export default function FirmaDashboard({ onGoHome }: { onGoHome?: () => void }) 
   /* ── CRM access: only for paid subscribers ── */
   const hasCrmAccess = firmaProfile.isSubscribed || firmaProfile.isSponsor;
 
-  /* ── Orders: exact name match — loaded from DB via AppContext ── */
-  const firmaOrders = orders.filter(o =>
+  /* ── Orders: admin-view uses fetched admin orders; normal view uses context ── */
+  const ownOrders = orders.filter(o =>
     o.firmaName?.trim().toLowerCase() === user?.name?.trim().toLowerCase()
   );
+  const firmaOrders = adminFirmaName ? adminViewOrders : ownOrders;
 
   const totalRevenue = firmaOrders.filter(o => o.durum === "tamamlandi").reduce((s, o) => s + o.toplam, 0);
   const pendingCount = firmaOrders.filter(o => o.durum === "beklemede").length;
@@ -2531,7 +2591,7 @@ export default function FirmaDashboard({ onGoHome }: { onGoHome?: () => void }) 
   };
 
   const sidebarProps: SidebarProps = {
-    userName: user?.name ?? "",
+    userName: (adminFirmaName || user?.name) ?? "",
     firmaProfile,
     urgentCount,
     activeTab: tab,
@@ -2624,9 +2684,26 @@ export default function FirmaDashboard({ onGoHome }: { onGoHome?: () => void }) 
           </div>
         </header>
 
+        {/* Admin görünümü banner */}
+        {adminFirmaName && (
+          <div className="bg-amber-50 border-b border-amber-300 px-4 py-2.5 flex items-center gap-3 flex-wrap">
+            <span className="flex items-center gap-1.5 text-amber-800 font-bold text-sm">
+              <Shield className="w-4 h-4 text-amber-600" />
+              Admin Görünümü: {adminFirmaName}
+            </span>
+            <span className="text-amber-600 text-xs">{adminViewLoaded ? `${firmaOrders.length} sipariş yüklendi` : "Siparişler yükleniyor…"}</span>
+            <a
+              href="/admin-dashboard"
+              className="ml-auto text-xs px-3 py-1 rounded-full bg-amber-200 hover:bg-amber-300 text-amber-900 font-semibold transition-colors"
+            >
+              ← Admin Paneli
+            </a>
+          </div>
+        )}
+
         {/* Page content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          {tab === "panel"      && <PanelTab user={user} orders={firmaOrders} pendingCount={pendingCount} totalRevenue={totalRevenue} setTab={setTab} onReopenDekont={handleReopenDekont} onAdminApprove={user?.email === ADMIN_EMAIL ? handleAdminApprove : undefined} onAdminExtend={user?.email === ADMIN_EMAIL ? handleAdminExtend : undefined} onRenewRequest={handleQuickRenew} />}
+          {tab === "panel"      && <PanelTab user={viewUser} orders={firmaOrders} pendingCount={pendingCount} totalRevenue={totalRevenue} setTab={setTab} onReopenDekont={handleReopenDekont} onAdminApprove={isAdmin ? handleAdminApprove : undefined} onAdminExtend={isAdmin ? handleAdminExtend : undefined} onRenewRequest={handleQuickRenew} />}
           {tab === "siparisler" && <OrdersTab orders={firmaOrders} />}
           {tab === "yorumlar"   && (hasCrmAccess
             ? <ReviewsTab />

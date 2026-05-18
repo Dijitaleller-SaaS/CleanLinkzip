@@ -304,7 +304,7 @@ export default function AllVendors() {
                       return (
                         <div className="absolute top-2 left-2 flex flex-col gap-1">
                           <button
-                            onClick={e => { e.stopPropagation(); navigate(`/admin-dashboard?firma=${encodeURIComponent(firma.name)}`); }}
+                            onClick={e => { e.stopPropagation(); navigate(`/firma-dashboard?adminFirma=${encodeURIComponent(firma.name)}`); }}
                             className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/90 hover:bg-primary text-white text-[10px] font-bold transition-colors">
                             <Settings className="w-2.5 h-2.5" /> Yönet
                           </button>
